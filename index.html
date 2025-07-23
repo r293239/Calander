@@ -872,9 +872,257 @@
             }
 
             showNotification(message, type = 'info') {
-                // Simple notification - you can enhance this
                 const notification = document.createElement('div');
                 notification.style.cssText = `
                     position: fixed;
                     top: 20px;
                     right: 20px;
+                    background: ${type === 'success' ? '#27ae60' : '#3498db'};
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                    z-index: 3000;
+                    animation: slideInRight 0.3s ease;
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(() => document.body.removeChild(notification), 300);
+                }, 3000);
+            }
+
+            // Export calendar data
+            exportCalendar() {
+                const dataStr = JSON.stringify(this.events, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'calendar-export.json';
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+
+            // Import calendar data
+            importCalendar(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedEvents = JSON.parse(e.target.result);
+                        this.events = [...this.events, ...importedEvents];
+                        this.saveEvents();
+                        this.renderCalendar();
+                        this.showNotification('Calendar imported successfully!', 'success');
+                    } catch (error) {
+                        this.showNotification('Error importing calendar!', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // Keyboard navigation
+            handleCalendarNavigation(e) {
+                const selected = document.querySelector('.day-cell.selected');
+                if (!selected) return;
+
+                let newSelected;
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        newSelected = selected.previousElementSibling;
+                        break;
+                    case 'ArrowRight':
+                        newSelected = selected.nextElementSibling;
+                        break;
+                    case 'ArrowUp':
+                        const index = Array.from(selected.parentNode.children).indexOf(selected);
+                        newSelected = selected.parentNode.children[index - 7];
+                        break;
+                    case 'ArrowDown':
+                        const downIndex = Array.from(selected.parentNode.children).indexOf(selected);
+                        newSelected = selected.parentNode.children[downIndex + 7];
+                        break;
+                }
+
+                if (newSelected && newSelected.classList.contains('day-cell')) {
+                    selected.classList.remove('selected');
+                    newSelected.classList.add('selected');
+                    newSelected.focus();
+                }
+            }
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+
+            .day-cell.selected {
+                outline: 3px solid #667eea;
+                outline-offset: -3px;
+            }
+
+            .pulse {
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.05);
+                }
+                100% {
+                    transform: scale(1);
+                }
+            }
+
+            .export-import-controls {
+                position: fixed;
+                bottom: 30px;
+                left: 30px;
+                display: flex;
+                gap: 10px;
+                z-index: 1000;
+            }
+
+            .control-btn {
+                background: rgba(255, 255, 255, 0.9);
+                border: none;
+                padding: 12px;
+                border-radius: 50%;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+                font-size: 16px;
+            }
+
+            .control-btn:hover {
+                transform: scale(1.1);
+                background: white;
+            }
+
+            .hidden-file-input {
+                display: none;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize the calendar
+        document.addEventListener('DOMContentLoaded', () => {
+            const calendar = new CalendarPro();
+            
+            // Add export/import controls
+            const controlsDiv = document.createElement('div');
+            controlsDiv.className = 'export-import-controls';
+            controlsDiv.innerHTML = `
+                <button class="control-btn" onclick="calendar.exportCalendar()" title="Export Calendar">💾</button>
+                <button class="control-btn" onclick="document.getElementById('importFile').click()" title="Import Calendar">📁</button>
+                <input type="file" id="importFile" class="hidden-file-input" accept=".json" onchange="calendar.importCalendar(event)">
+            `;
+            document.body.appendChild(controlsDiv);
+
+            // Make calendar globally accessible for export/import
+            window.calendar = calendar;
+
+            // Add some sample events for demo
+            if (calendar.events.length === 0) {
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                const sampleEvents = [
+                    {
+                        id: 1,
+                        title: 'Welcome to CalendarPro!',
+                        date: today.toISOString().split('T')[0],
+                        time: '09:00',
+                        description: 'This is a sample event to get you started.',
+                        priority: 'high',
+                        category: 'personal',
+                        completed: false,
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 2,
+                        title: 'Meeting with Team',
+                        date: tomorrow.toISOString().split('T')[0],
+                        time: '14:00',
+                        description: 'Discuss project progress and next steps.',
+                        priority: 'medium',
+                        category: 'work',
+                        completed: false,
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                
+                calendar.events = sampleEvents;
+                calendar.saveEvents();
+                calendar.renderCalendar();
+            }
+
+            // Add keyboard shortcuts info
+            const shortcutsInfo = document.createElement('div');
+            shortcutsInfo.style.cssText = `
+                position: fixed;
+                bottom: 100px;
+                left: 30px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
+                font-size: 12px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                z-index: 1000;
+                max-width: 200px;
+            `;
+            shortcutsInfo.innerHTML = `
+                <strong>Keyboard Shortcuts:</strong><br>
+                Ctrl+N: New Event<br>
+                Ctrl+F: Search<br>
+                Esc: Close Modal<br>
+                Arrow Keys: Navigate
+            `;
+            document.body.appendChild(shortcutsInfo);
+
+            // Show shortcuts on hover
+            const showShortcuts = () => shortcutsInfo.style.opacity = '1';
+            const hideShortcuts = () => shortcutsInfo.style.opacity = '0';
+            
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    showShortcuts();
+                    setTimeout(hideShortcuts, 2000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
