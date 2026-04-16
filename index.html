@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proxy</title>
+    <title>Web Proxy Suite • Archive • Reconstruct • Cache</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; height: 100vh; display: flex; flex-direction: column; }
-        #header { background: #161b22; border-bottom: 1px solid #30363d; padding: 15px 20px; }
+        #header { background: #161b22; border-bottom: 1px solid #30363d; padding: 15px 20px; flex-shrink: 0; }
         h1 { font-size: 20px; color: #58a6ff; margin-bottom: 5px; }
         .subtitle { color: #8b949e; font-size: 13px; margin-bottom: 15px; }
         #url-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-        #url-input { flex: 1; min-width: 300px; padding: 12px 15px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; outline: none; }
+        #url-input { flex: 1; min-width: 280px; padding: 12px 15px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; outline: none; }
         #url-input:focus { border-color: #58a6ff; }
         #method-select { padding: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; cursor: pointer; min-width: 220px; }
         button { padding: 12px 24px; background: #238636; border: none; border-radius: 6px; color: white; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
@@ -20,47 +20,52 @@
         button.secondary:hover { background: #30363d; }
         button.warning { background: #9e6a03; }
         button.warning:hover { background: #bb8009; }
+        button.danger { background: #da3633; }
+        button.danger:hover { background: #f85149; }
         .button-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
         #progress-container { margin: 10px 0; display: none; }
         #progress-bar { width: 100%; height: 20px; background: #21262d; border-radius: 10px; overflow: hidden; }
         #progress-fill { height: 100%; background: linear-gradient(90deg, #238636, #2ea043); width: 0%; transition: width 0.3s; }
         #progress-text { margin-top: 5px; font-size: 12px; color: #8b949e; }
         #tabs { display: flex; gap: 2px; margin-top: 10px; border-bottom: 1px solid #30363d; flex-wrap: wrap; }
-        .tab { padding: 8px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: #8b949e; cursor: pointer; font-size: 13px; }
+        .tab { padding: 8px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: #8b949e; cursor: pointer; font-size: 13px; transition: 0.2s; }
         .tab:hover { color: #c9d1d9; background: #21262d; }
         .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
-        #content { flex: 1; display: flex; overflow: hidden; }
+        #content { flex: 1; display: flex; overflow: hidden; min-height: 0; }
         .panel { flex: 1; display: none; overflow: hidden; }
         .panel.active { display: flex; flex-direction: column; }
         #preview-frame { width: 100%; height: 100%; border: none; background: white; }
         #source-view { display: flex; height: 100%; }
-        #resource-list { width: 300px; background: #161b22; border-right: 1px solid #30363d; overflow-y: auto; padding: 15px; }
+        #resource-list { width: 300px; background: #161b22; border-right: 1px solid #30363d; overflow-y: auto; padding: 15px; flex-shrink: 0; }
         .resource-section { margin-bottom: 20px; }
-        .resource-section h3 { color: #58a6ff; font-size: 14px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #30363d; }
-        .resource-item { padding: 5px; margin: 2px 0; font-size: 11px; word-break: break-all; cursor: pointer; border-radius: 3px; }
+        .resource-section h3 { color: #58a6ff; font-size: 14px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; }
+        .resource-item { padding: 5px 8px; margin: 3px 0; font-size: 11px; word-break: break-all; cursor: pointer; border-radius: 3px; font-family: monospace; transition: 0.1s; }
         .resource-item:hover { background: #21262d; }
-        .resource-item.js { color: #f1e05a; }
-        .resource-item.css { color: #563d7c; }
-        .resource-item.img { color: #2ea043; }
-        #code-editor { flex: 1; padding: 15px; overflow: auto; }
-        #html-editor, #resource-content { width: 100%; height: 100%; background: #0d1117; color: #c9d1d9; font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 13px; border: 1px solid #30363d; border-radius: 6px; padding: 15px; resize: none; outline: none; }
-        #log-panel { padding: 20px; overflow-y: auto; background: #0d1117; }
-        .log-entry { padding: 4px 0; font-family: monospace; font-size: 12px; border-bottom: 1px solid #21262d; }
+        .resource-item.js { color: #f1e05a; border-left: 2px solid #f1e05a; }
+        .resource-item.css { color: #563d7c; border-left: 2px solid #563d7c; }
+        .resource-item.img { color: #2ea043; border-left: 2px solid #2ea043; }
+        #code-editor { flex: 1; padding: 15px; overflow: auto; background: #0d1117; }
+        #resource-content, #html-editor { width: 100%; height: 100%; background: #0d1117; color: #c9d1d9; font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 13px; border: 1px solid #30363d; border-radius: 6px; padding: 15px; resize: none; outline: none; }
+        #log-panel { padding: 15px; overflow-y: auto; background: #0d1117; height: 100%; }
+        .log-entry { padding: 6px 8px; font-family: monospace; font-size: 12px; border-bottom: 1px solid #21262d; white-space: pre-wrap; word-break: break-all; }
         .log-success { color: #3fb950; }
         .log-error { color: #f85149; }
         .log-info { color: #58a6ff; }
         .log-warning { color: #d29922; }
-        #status-bar { padding: 8px 20px; background: #161b22; border-top: 1px solid #30363d; font-size: 12px; color: #8b949e; display: flex; justify-content: space-between; }
+        #status-bar { padding: 8px 20px; background: #161b22; border-top: 1px solid #30363d; font-size: 12px; color: #8b949e; display: flex; justify-content: space-between; flex-shrink: 0; }
         .quick-link { display: inline-block; padding: 4px 12px; background: #21262d; border-radius: 20px; color: #58a6ff; text-decoration: none; font-size: 12px; margin-right: 8px; cursor: pointer; }
         .quick-link:hover { background: #30363d; }
         .bookmarklet-section { background: #21262d; padding: 15px; border-radius: 6px; margin: 10px 0; }
-        .bookmarklet-link { display: inline-block; padding: 8px 15px; background: #1f6feb; color: white; text-decoration: none; border-radius: 4px; margin: 5px 5px 5px 0; font-size: 13px; }
+        .bookmarklet-link { display: inline-block; padding: 8px 15px; background: #1f6feb; color: white; text-decoration: none; border-radius: 4px; margin: 5px 5px 5px 0; font-size: 13px; cursor: pointer; }
+        .bookmarklet-link:hover { background: #388bfd; }
+        #stats-display { font-family: monospace; }
+        .clear-log-btn { background: #21262d; border: 1px solid #30363d; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 10px; }
     </style>
 </head>
 <body>
     <div id="header">
-        <h1>🌐 Proxy</h1>
-        <div class="subtitle">Archive • Cache • Reconstruct • All Methods</div>
+        <h1>🌐 Web Proxy Suite</h1>
+        <div class="subtitle">Archive • Cache • Reconstruction • All Methods</div>
         
         <div id="url-bar">
             <input type="text" id="url-input" placeholder="Enter URL (e.g., https://example.com)" value="https://example.com" autofocus>
@@ -75,7 +80,7 @@
                     <option value="allorigins">AllOrigins Proxy</option>
                     <option value="corsproxy">CORS Proxy.io</option>
                     <option value="thingproxy">ThingProxy</option>
-                    <option value="12ft">12ft Ladder</option>
+                    <option value="12ft">12ft Ladder (Paywall remover)</option>
                 </optgroup>
                 <optgroup label="📱 Reader/Simplified">
                     <option value="rss">RSS.app Reader</option>
@@ -88,23 +93,22 @@
                     <option value="startpage">Startpage Proxy</option>
                 </optgroup>
                 <optgroup label="🏗️ Reconstruction">
-                    <option value="reconstruct">🔨 Reconstruct Full Site</option>
+                    <option value="reconstruct">🔨 Reconstruct Full Site (local)</option>
                     <option value="reconstruct-archive">📚 Reconstruct from Archive</option>
                 </optgroup>
             </select>
             <button onclick="loadPage()">🚀 Go</button>
-            <button class="secondary" onclick="captureSource()">📋 Capture</button>
-            <button class="warning" onclick="downloadHTML()">💾 Download</button>
+            <button class="secondary" onclick="captureSourceFromFrame()">📋 Capture Source</button>
+            <button class="warning" onclick="downloadCurrentHTML()">💾 Download HTML</button>
         </div>
         
         <div class="quick-links">
-            <span class="quick-link" onclick="setUrl('https://example.com')">Example</span>
+            <span class="quick-link" onclick="setUrl('https://example.com')">Example.com</span>
             <span class="quick-link" onclick="setUrl('https://html5games.com')">HTML5 Games</span>
             <span class="quick-link" onclick="setUrl('https://js13kgames.com')">JS13K Games</span>
-            <span class="quick-link" onclick="setUrl('https://diep.io')">Diep.io</span>
-            <span class="quick-link" onclick="setUrl('https://slope.live')">Slope</span>
-            <span class="quick-link" onclick="setUrl('https://1v1.lol')">1v1.LOL</span>
-            <span class="quick-link" onclick="setUrl(prompt('Enter URL:'))">+ Custom</span>
+            <span class="quick-link" onclick="setUrl('https://nekoweb.org')">Nekoweb</span>
+            <span class="quick-link" onclick="setUrl('https://wikipedia.org')">Wikipedia</span>
+            <span class="quick-link" onclick="customUrl()">🔗 Custom</span>
         </div>
         
         <div id="progress-container">
@@ -113,97 +117,76 @@
         </div>
         
         <div id="tabs">
-            <button class="tab active" onclick="switchTab('view')">👁️ View</button>
-            <button class="tab" onclick="switchTab('source')">📄 Source</button>
-            <button class="tab" onclick="switchTab('resources')">📦 Resources</button>
-            <button class="tab" onclick="switchTab('bookmarklets')">📌 Bookmarklets</button>
-            <button class="tab" onclick="switchTab('logs')">📋 Logs</button>
+            <button class="tab active" data-tab="view">👁️ View</button>
+            <button class="tab" data-tab="source">📄 Source</button>
+            <button class="tab" data-tab="resources">📦 Resources</button>
+            <button class="tab" data-tab="bookmarklets">📌 Bookmarklets</button>
+            <button class="tab" data-tab="logs">📋 Logs</button>
         </div>
     </div>
     
     <div id="content">
-        <!-- View Panel -->
         <div id="view-panel" class="panel active">
-            <iframe id="preview-frame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-pointer-lock"></iframe>
+            <iframe id="preview-frame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-pointer-lock allow-top-navigation-by-user-activation"></iframe>
         </div>
         
-        <!-- Source Panel -->
         <div id="source-panel" class="panel">
             <div style="display:flex;flex-direction:column;height:100%;padding:10px;gap:10px;background:#161b22">
                 <div>
                     <button onclick="applyHtmlChanges()">▶️ Apply Changes</button>
-                    <button class="secondary" onclick="downloadReconstructed()">💾 Download Full Site</button>
-                    <button class="secondary" onclick="copyHtml()">📋 Copy HTML</button>
-                    <button class="secondary" onclick="formatHtml()">✨ Format</button>
+                    <button class="secondary" onclick="downloadReconstructed()">💾 Download Reconstructed</button>
+                    <button class="secondary" onclick="copyHtmlToClipboard()">📋 Copy HTML</button>
+                    <button class="secondary" onclick="formatHtmlPretty()">✨ Format</button>
                 </div>
-                <textarea id="html-editor" placeholder="HTML will appear here..."></textarea>
+                <textarea id="html-editor" placeholder="HTML source will appear here..."></textarea>
             </div>
         </div>
         
-        <!-- Resources Panel -->
         <div id="resources-panel" class="panel">
             <div id="source-view">
                 <div id="resource-list">
-                    <div class="resource-section">
-                        <h3>📜 JavaScript (<span id="js-count">0</span>)</h3>
-                        <div id="js-list"></div>
-                    </div>
-                    <div class="resource-section">
-                        <h3>🎨 CSS (<span id="css-count">0</span>)</h3>
-                        <div id="css-list"></div>
-                    </div>
-                    <div class="resource-section">
-                        <h3>🖼️ Images (<span id="img-count">0</span>)</h3>
-                        <div id="img-list"></div>
-                    </div>
-                    <div class="resource-section">
-                        <h3>🔗 Other</h3>
-                        <div id="other-list"></div>
-                    </div>
+                    <div class="resource-section"><h3>📜 JavaScript <span id="js-count">0</span></h3><div id="js-list"></div></div>
+                    <div class="resource-section"><h3>🎨 CSS <span id="css-count">0</span></h3><div id="css-list"></div></div>
+                    <div class="resource-section"><h3>🖼️ Images <span id="img-count">0</span></h3><div id="img-list"></div></div>
+                    <div class="resource-section"><h3>🔗 Other Links</h3><div id="other-list"></div></div>
                 </div>
                 <div id="code-editor">
-                    <textarea id="resource-content" placeholder="Select a resource to view" readonly></textarea>
+                    <textarea id="resource-content" placeholder="Select a resource to view content" readonly></textarea>
                 </div>
             </div>
         </div>
         
-        <!-- Bookmarklets Panel -->
         <div id="bookmarklets-panel" class="panel">
             <div style="padding:20px;overflow-y:auto">
                 <h2 style="color:#58a6ff;margin-bottom:20px">📌 Bookmarklets</h2>
                 <p style="margin-bottom:20px;color:#8b949e">Drag to bookmarks bar or copy code</p>
-                
                 <div class="bookmarklet-section">
-                    <h3 style="margin-bottom:10px">🚀 Quick Access</h3>
+                    <h3>🚀 Quick Access</h3>
                     <a class="bookmarklet-link" href="javascript:(function(){var url=prompt('Enter URL:');if(url){if(!url.startsWith('http'))url='https://'+url;window.open('https://web.archive.org/web/'+url,'_blank');}})();">Archive.org</a>
                     <a class="bookmarklet-link" href="javascript:(function(){window.open('https://webcache.googleusercontent.com/search?q=cache:'+encodeURIComponent(location.href),'_blank');})();">Google Cache</a>
                     <a class="bookmarklet-link" href="javascript:(function(){window.open('https://12ft.io/'+location.href,'_blank');})();">12ft Ladder</a>
                     <a class="bookmarklet-link" href="javascript:(function(){window.open('https://www.textise.net/?url='+encodeURIComponent(location.href),'_blank');})();">Textise</a>
                 </div>
-                
                 <div class="bookmarklet-section">
-                    <h3 style="margin-bottom:10px">📖 Reader Mode</h3>
+                    <h3>📖 Reader Mode</h3>
                     <a class="bookmarklet-link" href="javascript:(function(){window.open('https://outline.com/'+location.href,'_blank');})();">Outline.com</a>
                     <a class="bookmarklet-link" href="javascript:(function(){window.open('https://rss.app/embed/'+encodeURIComponent(location.href),'_blank');})();">RSS.app</a>
                 </div>
-                
                 <div class="bookmarklet-section">
-                    <h3 style="margin-bottom:10px">🏗️ Reconstruction</h3>
-                    <a class="bookmarklet-link" href="javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/your-repo/proxy.js';document.body.appendChild(s);})();">Load Proxy</a>
-                </div>
-                
-                <div class="bookmarklet-section">
-                    <h3 style="margin-bottom:10px">📋 Custom Bookmarklet</h3>
+                    <h3>✏️ Custom Bookmarklet</h3>
                     <textarea id="bookmarklet-code" style="width:100%;height:100px;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:10px;font-family:monospace;margin-bottom:10px">javascript:(function(){location.href='https://web.archive.org/web/'+location.href;})();</textarea>
                     <button onclick="testBookmarklet()">🧪 Test</button>
-                    <button onclick="copyBookmarklet()">📋 Copy</button>
+                    <button onclick="copyBookmarkletCode()">📋 Copy</button>
                 </div>
             </div>
         </div>
         
-        <!-- Logs Panel -->
         <div id="logs-panel" class="panel">
-            <div id="log-panel"></div>
+            <div style="padding:10px; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; align-items:center;">
+                <span>📋 Activity Logs</span>
+                <button class="clear-log-btn" onclick="clearAllLogs()">Clear Logs</button>
+            </div>
+            <div id="log-panel" style="height:calc(100% - 50px); overflow-y:auto;"></div>
         </div>
     </div>
     
@@ -213,86 +196,95 @@
     </div>
 
     <script>
-        // State
+        // ======================= STATE =======================
         let currentUrl = '';
         let originalHtml = '';
         let processedHtml = '';
         let resources = { js: new Map(), css: new Map(), img: new Map(), other: new Map() };
-        let logs = [];
         
-        // Init
-        document.addEventListener('DOMContentLoaded', () => {
-            addLog('🌐 Proxy initialized', 'success');
-            addLog('Select method and enter URL', 'info');
-            document.getElementById('url-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') loadPage(); });
-            const params = new URLSearchParams(location.search);
-            if (params.has('url')) { document.getElementById('url-input').value = decodeURIComponent(params.get('url')); loadPage(); }
-        });
-        
+        // ======================= UTILITIES =======================
         function addLog(message, type = 'info') {
             const lp = document.getElementById('log-panel');
             const entry = document.createElement('div');
             entry.className = `log-entry log-${type}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
             lp.appendChild(entry);
             lp.scrollTop = lp.scrollHeight;
-            logs.push({ message, type });
-            document.getElementById('status-text').textContent = message;
+            document.getElementById('status-text').textContent = message.substring(0, 80);
         }
         
-        function setUrl(url) { document.getElementById('url-input').value = url; loadPage(); }
+        function clearAllLogs() {
+            document.getElementById('log-panel').innerHTML = '';
+            addLog('Logs cleared', 'info');
+        }
         
         function updateProgress(percent, text) {
-            const c = document.getElementById('progress-container');
-            const f = document.getElementById('progress-fill');
-            const t = document.getElementById('progress-text');
-            c.style.display = 'block';
-            f.style.width = percent + '%';
-            t.textContent = text;
-            if (percent >= 100) setTimeout(() => c.style.display = 'none', 1000);
+            const container = document.getElementById('progress-container');
+            const fill = document.getElementById('progress-fill');
+            const txt = document.getElementById('progress-text');
+            container.style.display = 'block';
+            fill.style.width = percent + '%';
+            txt.textContent = text;
+            if (percent >= 100) {
+                setTimeout(() => { container.style.display = 'none'; }, 1500);
+            }
         }
         
-        function buildProxyUrl(url, method) {
-            const e = encodeURIComponent(url);
-            const proxies = {
-                wayback: `https://web.archive.org/web/${url}`,
-                'archive-today': `https://archive.today/submit/?url=${e}`,
-                'google-cache': `https://webcache.googleusercontent.com/search?q=cache:${e}`,
-                textise: `https://www.textise.net/?url=${e}`,
-                allorigins: `https://api.allorigins.win/raw?url=${e}`,
-                corsproxy: `https://corsproxy.io/?${e}`,
-                thingproxy: `https://thingproxy.freeboard.io/fetch/${url}`,
-                '12ft': `https://12ft.io/${url}`,
-                rss: `https://rss.app/embed/${e}`,
-                outline: `https://outline.com/${url}`,
-                textmode: `https://textmode.tv/${url}`,
-                'google-web-light': `https://www.google.com/search?q=${e}&btnI`,
-                'bing-mobile': `https://www.bing.com/search?q=${e}&f=1`,
-                startpage: `https://www.startpage.com/sp/search?q=${e}`
-            };
-            return proxies[method] || url;
+        function setUrl(url) {
+            document.getElementById('url-input').value = url;
+            loadPage();
         }
         
-        async function fetchWithProxy(url) {
-            const proxies = [
+        function customUrl() {
+            const u = prompt('Enter full URL (with https://)');
+            if (u) setUrl(u);
+        }
+        
+        // Robust fetch with multiple fallbacks
+        async function robustFetch(url, maxAttempts = 3) {
+            const proxyList = [
                 `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
                 `https://corsproxy.io/?${encodeURIComponent(url)}`,
                 `https://thingproxy.freeboard.io/fetch/${url}`
             ];
-            for (const p of proxies) {
-                try {
-                    const r = await fetch(p);
-                    if (r.ok) return await r.text();
-                } catch (e) { continue; }
+            for (let i = 0; i < maxAttempts; i++) {
+                for (const proxy of proxyList) {
+                    try {
+                        const res = await fetch(proxy, { signal: AbortSignal.timeout(15000) });
+                        if (res.ok) return await res.text();
+                    } catch (e) { /* continue */ }
+                }
+                await new Promise(r => setTimeout(r, 500));
             }
-            try {
-                const r = await fetch(url);
-                return await r.text();
-            } catch (e) {
-                throw new Error('All fetch methods failed');
-            }
+            // Direct fallback (may CORS fail)
+            const direct = await fetch(url);
+            if (direct.ok) return await direct.text();
+            throw new Error(`Failed to fetch ${url}`);
         }
         
+        function buildProxyUrl(url, method) {
+            const enc = encodeURIComponent(url);
+            const map = {
+                wayback: `https://web.archive.org/web/${url}`,
+                'archive-today': `https://archive.today/submit/?url=${enc}`,
+                'google-cache': `https://webcache.googleusercontent.com/search?q=cache:${enc}`,
+                textise: `https://www.textise.net/?url=${enc}`,
+                allorigins: `https://api.allorigins.win/raw?url=${enc}`,
+                corsproxy: `https://corsproxy.io/?${enc}`,
+                thingproxy: `https://thingproxy.freeboard.io/fetch/${url}`,
+                '12ft': `https://12ft.io/${url}`,
+                rss: `https://rss.app/embed/${enc}`,
+                outline: `https://outline.com/${url}`,
+                textmode: `https://textmode.tv/${url}`,
+                'google-web-light': `https://www.google.com/search?q=${enc}&btnI`,
+                'bing-mobile': `https://www.bing.com/search?q=${enc}&f=1`,
+                startpage: `https://www.startpage.com/sp/search?q=${enc}`
+            };
+            return map[method] || url;
+        }
+        
+        // ======================= CORE LOAD =======================
         async function loadPage() {
             let url = document.getElementById('url-input').value.trim();
             if (!url) return;
@@ -300,116 +292,273 @@
             currentUrl = url;
             const method = document.getElementById('method-select').value;
             
-            addLog(`Loading: ${url} via ${method}`, 'info');
+            addLog(`🌐 Loading: ${url} via ${method}`, 'info');
             
+            // Reconstruction modes
             if (method === 'reconstruct' || method === 'reconstruct-archive') {
                 await reconstructSite(method === 'reconstruct-archive');
                 return;
             }
             
             const proxyUrl = buildProxyUrl(url, method);
-            document.getElementById('preview-frame').src = proxyUrl;
-            document.getElementById('url-display')?.textContent = url;
+            const iframe = document.getElementById('preview-frame');
+            iframe.src = proxyUrl;
+            addLog(`📺 Iframe loading: ${proxyUrl}`, 'success');
             
-            setTimeout(() => fetchSource(proxyUrl), 1000);
-            addLog(`Loaded: ${proxyUrl}`, 'success');
+            // Try to capture source after load
+            iframe.onload = () => {
+                setTimeout(() => captureSourceFromFrame(), 1200);
+            };
+            updateProgress(30, 'Loading in viewer...');
         }
         
-        async function fetchSource(fetchUrl) {
+        async function captureSourceFromFrame() {
+            const iframe = document.getElementById('preview-frame');
             try {
-                const html = await fetchWithProxy(fetchUrl);
-                originalHtml = html;
-                document.getElementById('html-editor').value = html;
-                addLog(`Source fetched: ${html.length} chars`, 'success');
-            } catch (e) {
-                addLog(`Source fetch failed: ${e.message}`, 'error');
+                // Attempt to get iframe document (same-origin only works if same origin)
+                let htmlContent = '';
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                    if (iframeDoc && iframeDoc.documentElement) {
+                        htmlContent = iframeDoc.documentElement.outerHTML;
+                    }
+                } catch (e) { /* cross-origin */ }
+                
+                if (!htmlContent && currentUrl) {
+                    addLog('Cross-origin iframe, fetching via proxy...', 'warning');
+                    htmlContent = await robustFetch(currentUrl);
+                }
+                if (htmlContent) {
+                    originalHtml = htmlContent;
+                    document.getElementById('html-editor').value = htmlContent;
+                    addLog(`✅ Captured ${htmlContent.length} chars`, 'success');
+                } else {
+                    addLog('Could not capture source', 'error');
+                }
+            } catch (err) {
+                addLog(`Capture error: ${err.message}`, 'error');
             }
         }
         
+        // ======================= RECONSTRUCTION =======================
         async function reconstructSite(fromArchive = false) {
-            let url = currentUrl;
-            if (fromArchive) url = `https://web.archive.org/web/${url}`;
+            let targetUrl = currentUrl;
+            if (fromArchive) targetUrl = `https://web.archive.org/web/${targetUrl}`;
             
+            addLog(`🔨 Starting reconstruction: ${targetUrl}`, 'info');
+            updateProgress(5, 'Fetching HTML...');
             resources = { js: new Map(), css: new Map(), img: new Map(), other: new Map() };
-            addLog(`🔨 Reconstructing: ${url}`, 'info');
-            updateProgress(10, 'Fetching HTML...');
             
             try {
-                const html = await fetchWithProxy(url);
+                const html = await robustFetch(targetUrl);
                 originalHtml = html;
-                addLog(`HTML: ${html.length} chars`, 'success');
-                updateProgress(30, 'Parsing...');
+                updateProgress(20, 'Parsing DOM...');
                 
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-                const baseUrl = new URL(url);
+                let baseUrl;
+                try {
+                    baseUrl = new URL(targetUrl);
+                } catch (e) { baseUrl = new URL(currentUrl); }
                 
-                const resourceUrls = [];
-                doc.querySelectorAll('script[src]').forEach(el => { const s = el.getAttribute('src'); if (s) resourceUrls.push({ type: 'js', url: new URL(s, baseUrl).href }); });
-                doc.querySelectorAll('link[rel="stylesheet"]').forEach(el => { const h = el.getAttribute('href'); if (h) resourceUrls.push({ type: 'css', url: new URL(h, baseUrl).href }); });
-                doc.querySelectorAll('img[src]').forEach(el => { const s = el.getAttribute('src'); if (s && !s.startsWith('data:')) resourceUrls.push({ type: 'img', url: new URL(s, baseUrl).href }); });
+                // Collect resources
+                const resourcePromises = [];
+                const scriptSrcs = [];
+                const cssHrefs = [];
+                const imgSrcs = [];
                 
-                addLog(`Found ${resourceUrls.length} resources`, 'info');
-                updateProgress(40, `Fetching resources...`);
+                doc.querySelectorAll('script[src]').forEach(el => {
+                    let src = el.getAttribute('src');
+                    if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
+                        try { src = new URL(src, baseUrl).href; scriptSrcs.push(src); } catch(e) {}
+                    }
+                });
+                doc.querySelectorAll('link[rel="stylesheet"]').forEach(el => {
+                    let href = el.getAttribute('href');
+                    if (href) {
+                        try { href = new URL(href, baseUrl).href; cssHrefs.push(href); } catch(e) {}
+                    }
+                });
+                doc.querySelectorAll('img[src]').forEach(el => {
+                    let src = el.getAttribute('src');
+                    if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
+                        try { src = new URL(src, baseUrl).href; imgSrcs.push(src); } catch(e) {}
+                    }
+                });
                 
-                let completed = 0;
-                for (const r of resourceUrls) {
+                const uniqueResources = [...new Set([...scriptSrcs, ...cssHrefs, ...imgSrcs])];
+                addLog(`📦 Found ${uniqueResources.length} unique resources`, 'info');
+                updateProgress(30, `Fetching ${uniqueResources.length} assets...`);
+                
+                let fetched = 0;
+                const fetchQueue = uniqueResources.map(async (url) => {
                     try {
-                        const content = await fetchWithProxy(r.url);
-                        const filename = r.url.split('/').pop() || `${r.type}_${Date.now()}`;
-                        resources[r.type].set(r.url, { url: r.url, filename, content });
-                        completed++;
-                        updateProgress(40 + (completed / resourceUrls.length) * 40, `${completed}/${resourceUrls.length}`);
-                    } catch (e) { addLog(`Failed: ${r.url}`, 'warning'); }
-                }
+                        let content = null;
+                        if (url.match(/\.(js|css)$/i)) {
+                            content = await robustFetch(url);
+                        } else if (imgSrcs.includes(url)) {
+                            content = url; // store url for images
+                        }
+                        let type = 'other';
+                        if (scriptSrcs.includes(url)) type = 'js';
+                        else if (cssHrefs.includes(url)) type = 'css';
+                        else if (imgSrcs.includes(url)) type = 'img';
+                        
+                        const filename = url.split('/').pop() || `${type}_resource`;
+                        if (type === 'js' && content) resources.js.set(url, { url, filename, content });
+                        else if (type === 'css' && content) resources.css.set(url, { url, filename, content });
+                        else if (type === 'img') resources.img.set(url, { url, filename, content: url });
+                        else resources.other.set(url, { url, filename, content: content || url });
+                        
+                        fetched++;
+                        updateProgress(30 + (fetched / uniqueResources.length) * 50, `Fetched ${fetched}/${uniqueResources.length}`);
+                    } catch (err) {
+                        addLog(`⚠️ Failed resource: ${url.substring(0, 80)}`, 'warning');
+                    }
+                });
                 
-                updateProgress(80, 'Reconstructing...');
+                await Promise.allSettled(fetchQueue);
+                updateProgress(85, 'Reconstructing HTML...');
+                
                 let newHtml = html;
-                resources.js.forEach((res, url) => { newHtml = newHtml.replace(new RegExp(`<script[^>]*src=["']${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>`, 'g'), `<script>${res.content}</script>`); });
-                resources.css.forEach((res, url) => { newHtml = newHtml.replace(new RegExp(`<link[^>]*href=["']${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>`, 'g'), `<style>${res.content}</style>`); });
-                if (!newHtml.includes('<base')) newHtml = newHtml.replace('<head>', `<head>\n<base href="${baseUrl.origin}/">`);
+                // Replace JS
+                for (let [url, res] of resources.js.entries()) {
+                    const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`<script[^>]*src=["']${escapedUrl}["'][^>]*>\\s*</script>`, 'gi');
+                    newHtml = newHtml.replace(regex, `<script>${res.content}</script>`);
+                    // also handle self-closing style or with content
+                    const regex2 = new RegExp(`<script[^>]*src=["']${escapedUrl}["'][^>]*/?>`, 'gi');
+                    newHtml = newHtml.replace(regex2, `<script>${res.content}</script>`);
+                }
+                // Replace CSS
+                for (let [url, res] of resources.css.entries()) {
+                    const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`<link[^>]*href=["']${escapedUrl}["'][^>]*/?>`, 'gi');
+                    newHtml = newHtml.replace(regex, `<style>${res.content}</style>`);
+                }
+                // Add base tag if missing
+                if (!newHtml.includes('<base')) {
+                    newHtml = newHtml.replace('<head>', `<head>\n<base href="${baseUrl.origin}/">\n`);
+                }
                 
                 processedHtml = newHtml;
                 document.getElementById('html-editor').value = newHtml;
-                updateResourceLists();
                 document.getElementById('preview-frame').srcdoc = newHtml;
-                
-                updateProgress(100, 'Complete!');
-                addLog(`✅ Reconstructed: ${resources.js.size} JS, ${resources.css.size} CSS, ${resources.img.size} IMG`, 'success');
-                document.getElementById('stats-display').textContent = `${resources.js.size} JS • ${resources.css.size} CSS • ${resources.img.size} IMG`;
-            } catch (e) {
-                addLog(`Reconstruction failed: ${e.message}`, 'error');
+                updateResourceLists();
+                updateProgress(100, 'Reconstruction complete!');
+                addLog(`✅ Reconstruction done: ${resources.js.size} JS, ${resources.css.size} CSS, ${resources.img.size} images`, 'success');
+                document.getElementById('stats-display').innerHTML = `📦 ${resources.js.size} JS • 🎨 ${resources.css.size} CSS • 🖼️ ${resources.img.size} IMG`;
+                switchTab('view');
+            } catch (err) {
+                addLog(`❌ Reconstruction failed: ${err.message}`, 'error');
                 updateProgress(0, 'Failed');
             }
         }
         
         function updateResourceLists() {
-            const jsList = document.getElementById('js-list'); jsList.innerHTML = '';
-            const cssList = document.getElementById('css-list'); cssList.innerHTML = '';
-            const imgList = document.getElementById('img-list'); imgList.innerHTML = '';
+            const jsDiv = document.getElementById('js-list');
+            const cssDiv = document.getElementById('css-list');
+            const imgDiv = document.getElementById('img-list');
+            const otherDiv = document.getElementById('other-list');
+            jsDiv.innerHTML = ''; cssDiv.innerHTML = ''; imgDiv.innerHTML = ''; otherDiv.innerHTML = '';
             
-            resources.js.forEach((res, url) => { const d = document.createElement('div'); d.className = 'resource-item js'; d.textContent = res.filename; d.title = url; d.onclick = () => document.getElementById('resource-content').value = res.content; jsList.appendChild(d); });
-            resources.css.forEach((res, url) => { const d = document.createElement('div'); d.className = 'resource-item css'; d.textContent = res.filename; d.title = url; d.onclick = () => document.getElementById('resource-content').value = res.content; cssList.appendChild(d); });
-            resources.img.forEach((res, url) => { const d = document.createElement('div'); d.className = 'resource-item img'; d.textContent = res.filename; d.title = url; d.onclick = () => document.getElementById('resource-content').value = url; imgList.appendChild(d); });
-            
+            for (let [url, res] of resources.js.entries()) {
+                const item = document.createElement('div'); item.className = 'resource-item js'; 
+                item.textContent = res.filename.length > 40 ? res.filename.slice(0,37)+'...' : res.filename;
+                item.title = url;
+                item.onclick = () => document.getElementById('resource-content').value = res.content;
+                jsDiv.appendChild(item);
+            }
+            for (let [url, res] of resources.css.entries()) {
+                const item = document.createElement('div'); item.className = 'resource-item css';
+                item.textContent = res.filename.length > 40 ? res.filename.slice(0,37)+'...' : res.filename;
+                item.title = url;
+                item.onclick = () => document.getElementById('resource-content').value = res.content;
+                cssDiv.appendChild(item);
+            }
+            for (let [url, res] of resources.img.entries()) {
+                const item = document.createElement('div'); item.className = 'resource-item img';
+                item.textContent = res.filename.length > 40 ? res.filename.slice(0,37)+'...' : res.filename;
+                item.title = url;
+                item.onclick = () => document.getElementById('resource-content').value = `Image URL: ${url}\n(embed in HTML if needed)`;
+                imgDiv.appendChild(item);
+            }
             document.getElementById('js-count').textContent = resources.js.size;
             document.getElementById('css-count').textContent = resources.css.size;
             document.getElementById('img-count').textContent = resources.img.size;
         }
         
-        function captureSource() { fetchSource(document.getElementById('preview-frame').src || currentUrl); }
-        function applyHtmlChanges() { processedHtml = document.getElementById('html-editor').value; document.getElementById('preview-frame').srcdoc = processedHtml; addLog('Applied', 'success'); }
-        function downloadHTML() { if (!processedHtml && !originalHtml) { alert('No content'); return; } const blob = new Blob([processedHtml || originalHtml], { type: 'text/html' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `proxy-${Date.now()}.html`; a.click(); addLog('Downloaded', 'success'); }
-        function downloadReconstructed() { downloadHTML(); }
-        function copyHtml() { navigator.clipboard?.writeText(document.getElementById('html-editor').value).then(() => addLog('Copied', 'success')); }
-        function formatHtml() { try { const formatted = document.getElementById('html-editor').value; document.getElementById('html-editor').value = formatted; } catch (e) {} }
-        function switchTab(name) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); event.target.classList.add('active'); document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); document.getElementById(`${name}-panel`).classList.add('active'); }
-        function testBookmarklet() { try { eval(document.getElementById('bookmarklet-code').value.replace('javascript:', '')); addLog('Executed', 'success'); } catch (e) { addLog(`Error: ${e.message}`, 'error'); } }
-        function copyBookmarklet() { navigator.clipboard?.writeText(document.getElementById('bookmarklet-code').value).then(() => addLog('Copied', 'success')); }
-        function clearAll() { document.getElementById('log-panel').innerHTML = ''; addLog('Cleared', 'info'); }
+        // ======================= UI ACTIONS =======================
+        function applyHtmlChanges() {
+            const newContent = document.getElementById('html-editor').value;
+            if (newContent) {
+                processedHtml = newContent;
+                document.getElementById('preview-frame').srcdoc = newContent;
+                addLog('Applied HTML changes to preview', 'success');
+            }
+        }
         
-        window.onerror = (m, s, l) => { addLog(`Error: ${m}`, 'error'); };
-        addLog('Proxy ready', 'success');
+        function downloadCurrentHTML() {
+            const content = processedHtml || originalHtml;
+            if (!content) { addLog('No HTML to download', 'error'); return; }
+            const blob = new Blob([content], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `proxy_${Date.now()}.html`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            addLog('Downloaded HTML file', 'success');
+        }
+        
+        function downloadReconstructed() { downloadCurrentHTML(); }
+        
+        function copyHtmlToClipboard() {
+            const html = document.getElementById('html-editor').value;
+            if (html && navigator.clipboard) {
+                navigator.clipboard.writeText(html).then(() => addLog('HTML copied', 'success'));
+            } else { addLog('Copy failed', 'error'); }
+        }
+        
+        function formatHtmlPretty() {
+            addLog('Formatting (basic indentation applied)', 'info');
+            const editor = document.getElementById('html-editor');
+            let html = editor.value;
+            // simple indentation for readability
+            let formatted = html.replace(/>\s*</g, '>\n<');
+            editor.value = formatted;
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll(`.tab[data-tab="${tabName}"]`).forEach(t => t.classList.add('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`${tabName}-panel`).classList.add('active');
+        }
+        
+        function testBookmarklet() {
+            let code = document.getElementById('bookmarklet-code').value;
+            code = code.replace(/^javascript:/i, '');
+            try {
+                new Function(code)();
+                addLog('Bookmarklet executed', 'success');
+            } catch (e) { addLog(`Bookmarklet error: ${e.message}`, 'error'); }
+        }
+        
+        function copyBookmarkletCode() {
+            const code = document.getElementById('bookmarklet-code').value;
+            if (navigator.clipboard) { navigator.clipboard.writeText(code); addLog('Bookmarklet code copied', 'success'); }
+        }
+        
+        // Event binding for tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = tab.getAttribute('data-tab');
+                if (tabName) switchTab(tabName);
+            });
+        });
+        
+        // initialize
+        addLog('🚀 Web Proxy Suite ready. Select method and enter URL.', 'success');
     </script>
 </body>
 </html>
