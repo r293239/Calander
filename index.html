@@ -2,88 +2,188 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Proxy Browser</title>
+    <title>Website Cloner for GitHub</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #1a1a1a; color: white; font-family: monospace; }
-        #toolbar { display: flex; padding: 15px; background: #2d2d2d; gap: 10px; }
-        #url-input { flex: 1; padding: 12px; background: #3c3c3c; border: 1px solid #555; color: white; border-radius: 5px; font-size: 14px; }
-        button { padding: 12px 25px; background: #0e639c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #1177bb; }
-        #content { padding: 20px; background: white; color: black; min-height: calc(100vh - 70px); }
-        #status { padding: 10px; color: #6a9955; }
-        a { color: #007acc; }
+        body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #58a6ff; margin-bottom: 20px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        #url-input { flex: 1; padding: 12px; background: #161b22; border: 1px solid #30363d; color: white; border-radius: 6px; font-size: 14px; }
+        button { padding: 12px 24px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2ea043; }
+        #output { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px; min-height: 300px; }
+        pre { white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto; }
+        .download-btn { margin-top: 10px; background: #1f6feb; }
+        .notice { margin-top: 20px; padding: 10px; background: #21262d; border-radius: 6px; font-size: 13px; }
+        #preview { margin-top: 20px; border: 1px solid #30363d; border-radius: 6px; overflow: hidden; }
+        #preview iframe { width: 100%; height: 400px; border: none; background: white; }
+        .tab-bar { display: flex; gap: 5px; margin-bottom: 10px; }
+        .tab { padding: 8px 16px; background: #21262d; border: none; color: #c9d1d9; cursor: pointer; border-radius: 6px 6px 0 0; }
+        .tab.active { background: #1f6feb; }
     </style>
 </head>
 <body>
-    <div id="toolbar">
-        <input type="text" id="url-input" placeholder="Enter website URL..." value="https://example.com">
-        <button id="go-btn">Browse</button>
-        <button id="reload-btn">↻</button>
+    <div class="container">
+        <h1>📋 Website Cloner</h1>
+        <p style="margin-bottom:20px;color:#8b949e">Fetch HTML/CSS/JS from any site and host it on GitHub Pages</p>
+        
+        <div class="input-group">
+            <input type="text" id="url-input" placeholder="https://example.com" value="https://example.com">
+            <button id="fetch-btn">Fetch & Clone</button>
+        </div>
+        
+        <div class="tab-bar">
+            <button class="tab active" data-tab="source">📄 Source HTML</button>
+            <button class="tab" data-tab="preview">👁️ Live Preview</button>
+            <button class="tab" data-tab="download">💾 Download Files</button>
+        </div>
+        
+        <div id="output">
+            <div id="source-panel">
+                <pre id="html-output">Enter a URL and click "Fetch & Clone"</pre>
+            </div>
+            <div id="preview-panel" style="display:none">
+                <div id="preview"></div>
+            </div>
+            <div id="download-panel" style="display:none">
+                <p>Download the cloned files to upload to your GitHub repository:</p>
+                <button class="download-btn" id="download-html">📥 Download index.html</button>
+                <button class="download-btn" id="download-zip" style="margin-left:10px">📦 Download All (ZIP)</button>
+                <p style="margin-top:15px;color:#8b949e">Then upload to GitHub → Settings → Pages to deploy</p>
+            </div>
+        </div>
+        
+        <div class="notice">
+            <strong>📌 How to use:</strong><br>
+            1. Enter a website URL (must be accessible from your network)<br>
+            2. Click "Fetch & Clone" - the HTML will be captured<br>
+            3. Download the files and upload to a new GitHub repository<br>
+            4. Enable GitHub Pages in repository Settings<br>
+            5. Access your cloned site at: username.github.io/repo-name
+        </div>
     </div>
-    <div id="status">Ready</div>
-    <div id="content"></div>
-    
+
     <script>
-        const input = document.getElementById('url-input');
-        const content = document.getElementById('content');
-        const status = document.getElementById('status');
-        const goBtn = document.getElementById('go-btn');
-        const reloadBtn = document.getElementById('reload-btn');
+        let clonedHTML = '';
+        let currentURL = '';
         
-        let currentUrl = 'https://example.com';
-        
-        async function fetchPage(url) {
-            status.textContent = 'Loading...';
-            content.innerHTML = '<p style="text-align:center;padding:50px">Loading page...</p>';
-            
-            try {
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                const html = await response.text();
-                content.innerHTML = html;
-                currentUrl = url;
-                input.value = url;
-                status.textContent = `Loaded: ${url}`;
-                
-                // Re-write links to go through proxy
-                document.querySelectorAll('a').forEach(link => {
-                    const href = link.getAttribute('href');
-                    if (href && !href.startsWith('#')) {
-                        link.onclick = (e) => {
-                            e.preventDefault();
-                            const newUrl = new URL(href, currentUrl).href;
-                            fetchPage(newUrl);
-                        };
-                    }
-                });
-                
-            } catch (error) {
-                content.innerHTML = `<p style="color:red;padding:50px;text-align:center">Error: ${error.message}</p>`;
-                status.textContent = `Failed: ${error.message}`;
-            }
-        }
-        
-        function navigate() {
-            let url = input.value.trim();
-            if (!url) return;
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url;
-            }
-            fetchPage(url);
-        }
-        
-        goBtn.addEventListener('click', navigate);
-        reloadBtn.addEventListener('click', () => fetchPage(currentUrl));
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') navigate();
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('source-panel').style.display = 'none';
+                document.getElementById('preview-panel').style.display = 'none';
+                document.getElementById('download-panel').style.display = 'none';
+                document.getElementById(tab.dataset.tab + '-panel').style.display = 'block';
+            });
         });
         
-        // Initial load
-        fetchPage('https://example.com');
+        // Fetch function
+        document.getElementById('fetch-btn').addEventListener('click', async () => {
+            const url = document.getElementById('url-input').value.trim();
+            if (!url) return;
+            
+            currentURL = url;
+            document.getElementById('html-output').textContent = 'Fetching...';
+            
+            try {
+                // Try multiple CORS proxies
+                const proxies = [
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                    `https://cors-anywhere.herokuapp.com/${url}`,
+                    `https://thingproxy.freeboard.io/fetch/${url}`
+                ];
+                
+                let html = null;
+                for (const proxy of proxies) {
+                    try {
+                        const response = await fetch(proxy);
+                        if (response.ok) {
+                            html = await response.text();
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                
+                if (!html) {
+                    // Try direct fetch as last resort
+                    try {
+                        const response = await fetch(url, { mode: 'no-cors' });
+                        html = await response.text();
+                    } catch (e) {
+                        throw new Error('All proxies failed. The site may block CORS requests.');
+                    }
+                }
+                
+                // Process HTML to make links relative
+                html = processHTML(html, url);
+                clonedHTML = html;
+                
+                document.getElementById('html-output').textContent = html;
+                
+                // Create preview
+                const previewDiv = document.getElementById('preview');
+                previewDiv.innerHTML = '';
+                const iframe = document.createElement('iframe');
+                iframe.srcdoc = html;
+                previewDiv.appendChild(iframe);
+                
+            } catch (error) {
+                document.getElementById('html-output').textContent = `Error: ${error.message}`;
+            }
+        });
+        
+        function processHTML(html, baseURL) {
+            const urlObj = new URL(baseURL);
+            const base = urlObj.origin;
+            
+            // Add base tag
+            if (!html.includes('<base')) {
+                html = html.replace('<head>', `<head>\n<base href="${base}/">`);
+            }
+            
+            // Convert absolute URLs to relative where possible
+            html = html.replace(/src="https?:\/\/[^/]+\//g, 'src="/');
+            html = html.replace(/href="https?:\/\/[^/]+\//g, 'href="/');
+            
+            // Add note
+            html += '\n<!-- Cloned from: ' + baseURL + ' -->';
+            
+            return html;
+        }
+        
+        // Download functions
+        document.getElementById('download-html').addEventListener('click', () => {
+            if (!clonedHTML) {
+                alert('Fetch a website first!');
+                return;
+            }
+            
+            const blob = new Blob([clonedHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+        
+        document.getElementById('download-zip').addEventListener('click', async () => {
+            if (!clonedHTML) {
+                alert('Fetch a website first!');
+                return;
+            }
+            
+            alert('ZIP feature requires JSZip library. For now, download index.html and manually add other assets.');
+            
+            // Simple fallback - just download HTML
+            document.getElementById('download-html').click();
+        });
     </script>
 </body>
 </html>
