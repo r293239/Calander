@@ -110,17 +110,6 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
-        .split-view { display: flex; height: 100%; width: 100%; }
-        .split-view .source-preview {
-            flex: 1;
-            background: #0a0c10;
-            overflow: auto;
-            padding: 16px;
-            font-family: monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-            border-left: 1px solid #30363d;
-        }
         .log-box {
             background: #0a0c10;
             height: 100%;
@@ -143,23 +132,27 @@
             display: flex;
             justify-content: space-between;
         }
-        .card {
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        .bookmark-card {
             background: #161b22;
             border-radius: 12px;
             padding: 16px;
-            margin-bottom: 20px;
+            margin: 16px;
         }
-        .reconstructed-viewer {
-            width: 100%;
-            height: 100%;
-            background: white;
-            border: none;
-        }
-        .inline-html {
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background: white;
+        .bookmark-link {
+            display: inline-block;
+            background: #1f6feb;
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 12px;
+            margin: 5px;
         }
     </style>
 </head>
@@ -169,56 +162,68 @@
     <div class="url-bar">
         <input type="text" id="url-input" placeholder="https://example.com" value="https://example.com">
         <select id="method-select">
-            <option value="allorigins" selected>🌐 AllOrigins (Full Reconstruct)</option>
-            <option value="corsproxy">🔀 CORSProxy.io</option>
-            <option value="thingproxy">⚙️ ThingProxy</option>
-            <option value="wayback">📦 Wayback Machine</option>
+            <option value="wayback" selected>📦 Internet Archive (Wayback Machine)</option>
             <option value="google-cache">🗄️ Google Cache</option>
+            <option value="archive-today">📑 Archive.today</option>
+            <option value="textise">📝 Textise (text only)</option>
             <option value="12ft">⚡ 12ft Ladder</option>
         </select>
-        <button class="primary" id="loadBtn">🚀 FETCH & RECONSTRUCT</button>
-        <button id="viewRawBtn">📄 Show Reconstructed Source</button>
+        <button class="primary" id="loadBtn">🌐 LOAD</button>
+        <button id="getSourceBtn">📄 GET SOURCE CODE</button>
     </div>
     <div class="action-group">
         <button id="downloadBtn">💾 Download HTML</button>
-        <button id="copySrcBtn">📋 Copy Source</button>
+        <button id="copyBtn">📋 Copy Source</button>
+        <button id="newTabBtn">🔗 Open in New Tab</button>
         <button id="clearLogsBtn">🗑️ Clear Logs</button>
     </div>
     <div class="quick-links">
         <span style="color:#6e7681">⚡ test:</span>
         <span class="quick-link" data-url="https://www.google.com">Google</span>
         <span class="quick-link" data-url="https://github.com">GitHub</span>
-        <span class="quick-link" data-url="https://news.ycombinator.com">HackerNews</span>
-        <span class="quick-link" data-url="https://example.com">Example</span>
-        <span class="quick-link" data-url="https://httpbin.org/html">HTML Test</span>
+        <span class="quick-link" data-url="https://news.ycombinator.com">HN</span>
+        <span class="quick-link" data-url="https://en.wikipedia.org/wiki/Main_Page">Wikipedia</span>
+        <span class="quick-link" data-url="https://archive.org">Archive.org</span>
     </div>
     <div class="tabs">
-        <button class="tab active" data-tab="view">👁️ Rendered View</button>
-        <button class="tab" data-tab="source">📄 Raw Source + JS</button>
+        <button class="tab active" data-tab="view">👁️ View</button>
+        <button class="tab" data-tab="source">📄 Source Code</button>
         <button class="tab" data-tab="logs">📋 Logs</button>
+        <button class="tab" data-tab="bookmarks">🔖 Bookmarklets</button>
     </div>
 </div>
 
 <div id="content">
-    <!-- View panel - renders the reconstructed HTML directly -->
     <div id="view-panel" class="panel active">
-        <iframe id="viewer-frame" style="width:100%;height:100%;border:none;background:white;" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation"></iframe>
+        <iframe id="viewer-frame"></iframe>
     </div>
-    
-    <!-- Source panel - shows full HTML + extracted JS links -->
     <div id="source-panel" class="panel">
-        <textarea id="source-output" class="source-area" readonly placeholder="// Full reconstructed HTML will appear here after clicking FETCH & RECONSTRUCT\n// All JavaScript URLs are extracted and listed at the bottom"></textarea>
+        <textarea id="source-output" class="source-area" readonly placeholder="// Click 'GET SOURCE CODE' to fetch the HTML source\n// All JavaScript URLs will be extracted and displayed"></textarea>
     </div>
-    
-    <!-- Logs panel -->
     <div id="logs-panel" class="panel">
         <div id="log-output" class="log-box">
-            <div class="log-entry log-info">⚡ PROXY initialized</div>
-            <div class="log-entry log-success">✅ Click "FETCH & RECONSTRUCT" to get full website HTML + all JS links</div>
+            <div class="log-entry log-info">⚡ PROXY ready</div>
+            <div class="log-entry log-success">✅ Internet Archive works - click LOAD then GET SOURCE CODE</div>
+        </div>
+    </div>
+    <div id="bookmarks-panel" class="panel">
+        <div class="bookmark-card">
+            <h3>📌 Proxy Bookmarklets</h3>
+            <p style="font-size:13px; margin-bottom:10px">Drag to bookmarks bar → use on any site</p>
+            <a class="bookmark-link" href="javascript:(function(){let u=prompt('Enter URL:');if(u){if(!u.startsWith('http'))u='https://'+u;window.open('https://web.archive.org/web/'+u,'_blank');}})();">📦 Wayback Machine</a>
+            <a class="bookmark-link" href="javascript:(function(){window.open('https://webcache.googleusercontent.com/search?q=cache:'+encodeURIComponent(location.href),'_blank');})();">🗄️ Google Cache</a>
+            <a class="bookmark-link" href="javascript:(function(){window.open('https://archive.today/'+location.href,'_blank');})();">📑 Archive.today</a>
+            <a class="bookmark-link" href="javascript:(function(){window.open('https://12ft.io/'+location.href,'_blank');})();">⚡ 12ft Ladder</a>
+            <hr style="margin:15px 0; border-color:#30363d">
+            <h3>💡 How to use</h3>
+            <p style="font-size:13px">1. Enter a URL (e.g., https://example.com)<br>
+            2. Click LOAD - the page opens in iframe via selected proxy<br>
+            3. Click GET SOURCE CODE - fetches the FULL HTML source<br>
+            4. Switch to "Source Code" tab to see HTML + all extracted JavaScript URLs<br>
+            5. Download or copy the reconstructed source</p>
         </div>
     </div>
 </div>
-
 <div id="status">
     <span id="status-text">● ready</span>
     <span id="url-display"></span>
@@ -233,8 +238,8 @@
     const statusSpan = document.getElementById('status-text');
     const urlDisplaySpan = document.getElementById('url-display');
 
-    let currentReconstructedHTML = '';
-    let currentOriginalUrl = '';
+    let currentRawHtml = '';
+    let currentTargetUrl = '';
 
     function addLog(msg, type = 'info') {
         const entry = document.createElement('div');
@@ -247,8 +252,8 @@
         while (logContainer.children.length > 150) logContainer.removeChild(logContainer.firstChild);
     }
 
-    // Extract ALL JavaScript URLs from HTML with absolute URL resolution
-    function extractAllJsUrls(html, baseUrl) {
+    // Extract ALL JavaScript URLs from HTML
+    function extractJavaScriptUrls(html, baseUrl) {
         const jsUrls = new Set();
         // script src extraction
         const scriptRegex = /<script\s+(?:[^>]*?\s+)?src=["']([^"']+)["']/gi;
@@ -264,16 +269,10 @@
                 } catch(e) { jsUrls.add(url); }
             }
         }
-        // link preload as="script"
-        const preloadRegex = /<link\s+[^>]*?rel=["']preload["'][^>]*?href=["']([^"']+)["'][^>]*?as=["']script["']/gi;
-        while ((match = preloadRegex.exec(html)) !== null) {
-            let url = match[1];
-            if (url) jsUrls.add(url);
-        }
         return Array.from(jsUrls);
     }
 
-    // Extract CSS links as well for completeness
+    // Extract CSS links
     function extractCssUrls(html, baseUrl) {
         const cssUrls = new Set();
         const linkRegex = /<link\s+[^>]*?rel=["']stylesheet["'][^>]*?href=["']([^"']+)["']/gi;
@@ -292,164 +291,173 @@
         return Array.from(cssUrls);
     }
 
-    // Build proxy fetch URL
-    function getFetchUrl(originalUrl, method) {
-        const encoded = encodeURIComponent(originalUrl);
-        const proxies = {
-            allorigins: `https://api.allorigins.win/raw?url=${encoded}`,
-            corsproxy: `https://corsproxy.io/?${encoded}`,
-            thingproxy: `https://thingproxy.freeboard.io/fetch/${originalUrl}`,
-            wayback: `https://api.allorigins.win/raw?url=${encodeURIComponent('https://web.archive.org/web/' + originalUrl)}`,
-            'google-cache': `https://api.allorigins.win/raw?url=${encodeURIComponent('https://webcache.googleusercontent.com/search?q=cache:' + encoded)}`,
-            '12ft': `https://api.allorigins.win/raw?url=${encodeURIComponent('https://12ft.io/' + originalUrl)}`
+    // Build the view URL based on method
+    function buildViewUrl(url, method) {
+        if (!url.startsWith('http')) url = 'https://' + url;
+        const encoded = encodeURIComponent(url);
+        const urls = {
+            wayback: `https://web.archive.org/web/${url}`,
+            'google-cache': `https://webcache.googleusercontent.com/search?q=cache:${encoded}`,
+            'archive-today': `https://archive.today/${url}`,
+            textise: `https://www.textise.net/?url=${encoded}`,
+            '12ft': `https://12ft.io/${url}`
         };
-        return proxies[method] || proxies.allorigins;
+        return urls[method] || urls.wayback;
     }
 
-    // Main reconstruction function - fetches HTML and displays both rendered view and source
-    async function fetchAndReconstruct() {
+    // Fetch source code through CORS proxy (AllOrigins works reliably)
+    async function fetchSourceCode() {
         let targetUrl = urlInput.value.trim();
         if (!targetUrl) {
-            addLog('❌ Enter a URL', 'error');
+            addLog('❌ Enter a URL first', 'error');
             return;
         }
-        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-            targetUrl = 'https://' + targetUrl;
-        }
-        urlInput.value = targetUrl;
-        currentOriginalUrl = targetUrl;
+        if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
+        currentTargetUrl = targetUrl;
         const method = methodSelect.value;
         
-        addLog(`🔍 FETCHING: ${targetUrl} via ${method}`, 'info');
-        urlDisplaySpan.textContent = targetUrl;
+        addLog(`📄 Fetching source code for: ${targetUrl}`, 'info');
         
-        const fetchUrl = getFetchUrl(targetUrl, method);
-        addLog(`📡 Proxy URL: ${fetchUrl.substring(0, 80)}...`, 'info');
+        // For archive methods, we need to fetch the archived page through a proxy
+        let fetchUrl;
+        if (method === 'wayback') {
+            const archiveUrl = `https://web.archive.org/web/${targetUrl}`;
+            fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(archiveUrl)}`;
+            addLog(`📦 Fetching from Internet Archive: ${archiveUrl}`, 'info');
+        } else if (method === 'google-cache') {
+            const cacheUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(targetUrl)}`;
+            fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cacheUrl)}`;
+        } else if (method === 'archive-today') {
+            const archiveUrl = `https://archive.today/${targetUrl}`;
+            fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(archiveUrl)}`;
+        } else {
+            const viewUrl = buildViewUrl(targetUrl, method);
+            fetchUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(viewUrl)}`;
+        }
         
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const timeoutId = setTimeout(() => controller.abort(), 20000);
             const response = await fetch(fetchUrl, { signal: controller.signal });
             clearTimeout(timeoutId);
             
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const html = await response.text();
+            currentRawHtml = html;
             
-            addLog(`✅ Fetched ${html.length.toLocaleString()} bytes`, 'success');
-            
-            // Extract all JS and CSS URLs
-            const jsUrls = extractAllJsUrls(html, targetUrl);
+            // Extract JS and CSS URLs
+            const jsUrls = extractJavaScriptUrls(html, targetUrl);
             const cssUrls = extractCssUrls(html, targetUrl);
             
-            // Build enhanced source display with asset list
+            // Build enhanced source with asset list
             let enhancedSource = html;
-            const assetSection = `\n\n<!-- ============================================= -->\n<!-- RECONSTRUCTED ASSET REPORT                    -->\n<!-- ============================================= -->\n<!-- 📜 JAVASCRIPT FILES (${jsUrls.length}): -->\n${jsUrls.map(u => `<!--   ${u} -->`).join('\n')}\n\n<!-- 🎨 CSS STYLESHEETS (${cssUrls.length}): -->\n${cssUrls.map(u => `<!--   ${u} -->`).join('\n')}\n<!-- ============================================= -->\n`;
+            enhancedSource += `\n\n<!-- ============================================= -->\n`;
+            enhancedSource += `<!-- RECONSTRUCTED SOURCE REPORT                    -->\n`;
+            enhancedSource += `<!-- Original URL: ${targetUrl} -->\n`;
+            enhancedSource += `<!-- Method: ${method} -->\n`;
+            enhancedSource += `<!-- ============================================= -->\n\n`;
+            enhancedSource += `<!-- 📜 JAVASCRIPT FILES FOUND (${jsUrls.length}): -->\n`;
+            jsUrls.forEach(url => { enhancedSource += `<!--   ${url} -->\n`; });
+            enhancedSource += `\n<!-- 🎨 CSS STYLESHEETS FOUND (${cssUrls.length}): -->\n`;
+            cssUrls.forEach(url => { enhancedSource += `<!--   ${url} -->\n`; });
+            enhancedSource += `\n<!-- 📊 Total HTML size: ${html.length.toLocaleString()} bytes -->\n`;
+            enhancedSource += `<!-- ============================================= -->\n`;
             
-            currentReconstructedHTML = html + assetSection;
-            sourceOutput.value = currentReconstructedHTML;
+            sourceOutput.value = enhancedSource;
             
-            // Also log the JS files found
+            addLog(`✅ Source fetched! ${html.length.toLocaleString()} bytes, ${jsUrls.length} JS files, ${cssUrls.length} CSS files`, 'success');
             if (jsUrls.length > 0) {
-                addLog(`📜 Found ${jsUrls.length} JavaScript files: ${jsUrls.slice(0, 3).join(', ')}${jsUrls.length > 3 ? '...' : ''}`, 'info');
-            } else {
-                addLog(`ℹ️ No external script tags found in HTML`, 'info');
-            }
-            if (cssUrls.length > 0) {
-                addLog(`🎨 Found ${cssUrls.length} CSS files`, 'info');
+                addLog(`📜 JS: ${jsUrls.slice(0, 3).join(', ')}${jsUrls.length > 3 ? ` +${jsUrls.length-3} more` : ''}`, 'info');
             }
             
-            // Render the HTML inside iframe using srcdoc (bypasses X-Frame-Options!)
-            // This is the key fix - use srcdoc to display the reconstructed HTML directly
-            const renderedHtml = `<!DOCTYPE html>\n<html>\n<head>\n<base href="${targetUrl}" target="_blank">\n<meta charset="UTF-8">\n</head>\n<body>${escapeHtmlForSrcdoc(html)}</body>\n</html>`;
-            
-            // Use srcdoc to render the page properly
-            viewerFrame.srcdoc = html;
-            
-            addLog(`🎉 Page reconstructed and rendered! View full source in "Raw Source + JS" tab`, 'success');
+            // Also switch to source tab to show user
+            switchTab('source');
             
         } catch (error) {
-            addLog(`❌ Fetch failed: ${error.message}`, 'error');
-            sourceOutput.value = `// ERROR: Could not fetch ${targetUrl}\n// ${error.message}\n\n// Try a different proxy method or URL.`;
-            viewerFrame.srcdoc = `<html><body style="background:#0a0c10;color:white;padding:40px;font-family:monospace"><h2>❌ Failed to load</h2><p>${error.message}</p><p>URL: ${targetUrl}</p><p>Try a different proxy method from the dropdown.</p></body></html>`;
+            addLog(`❌ Failed to fetch source: ${error.message}`, 'error');
+            sourceOutput.value = `// ERROR: Could not fetch source for ${targetUrl}\n// ${error.message}\n\n// Possible fixes:\n// 1. Check if URL is correct\n// 2. Try a different proxy method\n// 3. The site may be blocking requests\n\n// Raw error: ${error}`;
         }
     }
-    
-    // Helper to escape content for srcdoc (though we can just pass raw HTML)
-    function escapeHtmlForSrcdoc(str) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    // Load page in iframe (simple direct load - works for Internet Archive!)
+    function loadPage() {
+        let targetUrl = urlInput.value.trim();
+        if (!targetUrl) return;
+        if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
+        urlInput.value = targetUrl;
+        currentTargetUrl = targetUrl;
+        const method = methodSelect.value;
+        
+        const viewUrl = buildViewUrl(targetUrl, method);
+        addLog(`🌐 Loading: ${viewUrl}`, 'info');
+        urlDisplaySpan.textContent = targetUrl;
+        
+        viewerFrame.src = viewUrl;
+        
+        // Auto-fetch source after 2 seconds (for convenience)
+        setTimeout(() => {
+            addLog(`💡 Click "GET SOURCE CODE" to fetch HTML + extract JS links`, 'info');
+        }, 1000);
     }
-    
-    // Alternative: fetch using iframe with proxy (fallback)
-    function loadInIframeTraditional() {
+
+    // Download current HTML source
+    function downloadHtml() {
+        if (!currentRawHtml) {
+            addLog('No source to download. Click GET SOURCE CODE first.', 'warning');
+            return;
+        }
+        const fullContent = sourceOutput.value;
+        const blob = new Blob([fullContent], { type: 'text/html' });
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `proxy_source_${Date.now()}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+        addLog('💾 HTML source downloaded', 'success');
+    }
+
+    // Copy source to clipboard
+    function copySource() {
+        if (!currentRawHtml && !sourceOutput.value) {
+            addLog('No source to copy', 'error');
+            return;
+        }
+        const content = sourceOutput.value;
+        navigator.clipboard.writeText(content).then(() => {
+            addLog('📋 Source copied to clipboard', 'success');
+        }).catch(() => addLog('Clipboard failed', 'error'));
+    }
+
+    // Open in new tab
+    function openInNewTab() {
         let targetUrl = urlInput.value.trim();
         if (!targetUrl) return;
         if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
         const method = methodSelect.value;
-        let proxyUrl;
-        if (method === 'allorigins') {
-            proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-            addLog(`⚠️ Traditional iframe may not render due to MIME types, using srcdoc method instead`, 'warning');
-            fetchAndReconstruct();
-            return;
-        }
-        proxyUrl = getFetchUrl(targetUrl, method);
-        viewerFrame.src = proxyUrl;
-        addLog(`🌐 Loading iframe: ${proxyUrl}`, 'info');
+        const viewUrl = buildViewUrl(targetUrl, method);
+        window.open(viewUrl, '_blank');
+        addLog(`🔗 Opened in new tab: ${viewUrl}`, 'info');
     }
-    
-    // Download reconstructed HTML
-    function downloadHTML() {
-        if (!currentReconstructedHTML) {
-            addLog('No HTML in memory. Click FETCH & RECONSTRUCT first.', 'warning');
-            return;
-        }
-        const blob = new Blob([currentReconstructedHTML], { type: 'text/html' });
-        const a = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `reconstructed_${Date.now()}.html`;
-        a.click();
-        URL.revokeObjectURL(url);
-        addLog('💾 HTML downloaded with asset manifest', 'success');
-    }
-    
-    // Copy source to clipboard
-    function copySource() {
-        if (!currentReconstructedHTML) {
-            addLog('No source to copy', 'error');
-            return;
-        }
-        navigator.clipboard.writeText(currentReconstructedHTML).then(() => {
-            addLog('📋 Full reconstructed source copied to clipboard', 'success');
-        }).catch(() => addLog('Clipboard failed', 'error'));
-    }
-    
-    // Show the source tab
-    function showSourceTab() {
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        document.getElementById('source-panel').classList.add('active');
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelector('.tab[data-tab="source"]').classList.add('active');
-        addLog('Switched to source view', 'info');
-    }
-    
+
     function clearLogs() {
-        logContainer.innerHTML = '<div class="log-entry log-info">🧹 Logs cleared</div><div class="log-entry log-success">Ready for next request</div>';
+        logContainer.innerHTML = '<div class="log-entry log-info">🧹 Logs cleared</div><div class="log-entry log-success">Proxy ready</div>';
         addLog('Logs cleared', 'info');
     }
-    
+
     function switchTab(tabId) {
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.getElementById(`${tabId}-panel`).classList.add('active');
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
     }
-    
+
     // Event listeners
-    document.getElementById('loadBtn').addEventListener('click', fetchAndReconstruct);
-    document.getElementById('viewRawBtn').addEventListener('click', showSourceTab);
-    document.getElementById('downloadBtn').addEventListener('click', downloadHTML);
-    document.getElementById('copySrcBtn').addEventListener('click', copySource);
+    document.getElementById('loadBtn').addEventListener('click', loadPage);
+    document.getElementById('getSourceBtn').addEventListener('click', fetchSourceCode);
+    document.getElementById('downloadBtn').addEventListener('click', downloadHtml);
+    document.getElementById('copyBtn').addEventListener('click', copySource);
+    document.getElementById('newTabBtn').addEventListener('click', openInNewTab);
     document.getElementById('clearLogsBtn').addEventListener('click', clearLogs);
     
     document.querySelectorAll('.quick-link').forEach(el => {
@@ -457,7 +465,7 @@
             const u = el.getAttribute('data-url');
             if (u) {
                 urlInput.value = u;
-                fetchAndReconstruct();
+                loadPage();
             }
         });
     });
@@ -470,15 +478,13 @@
     });
     
     urlInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') fetchAndReconstruct();
+        if (e.key === 'Enter') loadPage();
     });
     
     // Initial load
-    setTimeout(() => {
-        addLog('✨ RECONSTRUCTION MODE ACTIVE', 'success');
-        addLog('💡 Click FETCH & RECONSTRUCT — I will fetch the FULL HTML, extract ALL JavaScript URLs, and render the page properly', 'info');
-        fetchAndReconstruct();
-    }, 200);
+    addLog('✨ PROXY with Internet Archive support active', 'success');
+    addLog('📌 Enter URL → LOAD → GET SOURCE CODE to reconstruct HTML + JS', 'info');
+    setTimeout(() => loadPage(), 100);
 </script>
 </body>
 </html>
