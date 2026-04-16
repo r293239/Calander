@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Web Viewer</title>
+    <title>Full Website Reconstructor</title>
     <style>
         * {
             margin: 0;
@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0d1117;
             color: #c9d1d9;
             height: 100vh;
@@ -29,7 +29,7 @@
         h1 {
             font-size: 20px;
             color: #58a6ff;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         .subtitle {
@@ -41,7 +41,7 @@
         #url-bar {
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         #url-input {
@@ -53,22 +53,35 @@
             color: #c9d1d9;
             font-size: 14px;
             outline: none;
-            transition: border-color 0.2s;
         }
 
         #url-input:focus {
             border-color: #58a6ff;
         }
 
-        #method-select {
-            padding: 12px;
-            background: #0d1117;
-            border: 1px solid #30363d;
+        button {
+            padding: 12px 24px;
+            background: #238636;
+            border: none;
             border-radius: 6px;
-            color: #c9d1d9;
+            color: white;
             font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            min-width: 200px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2ea043;
+        }
+
+        button.secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+        }
+
+        button.secondary:hover {
+            background: #30363d;
         }
 
         .button-group {
@@ -77,37 +90,30 @@
             flex-wrap: wrap;
         }
 
-        button {
-            padding: 10px 20px;
+        #progress-container {
+            margin: 10px 0;
+            display: none;
+        }
+
+        #progress-bar {
+            width: 100%;
+            height: 20px;
             background: #21262d;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #c9d1d9;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
+            border-radius: 10px;
+            overflow: hidden;
         }
 
-        button:hover {
-            background: #30363d;
-            border-color: #8b949e;
+        #progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #238636, #2ea043);
+            width: 0%;
+            transition: width 0.3s;
         }
 
-        button.primary {
-            background: #238636;
-            border-color: #2ea043;
-            color: white;
-        }
-
-        button.primary:hover {
-            background: #2ea043;
-        }
-
-        button.warning {
-            background: #9e6a03;
-            border-color: #bb8009;
-            color: white;
+        #progress-text {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #8b949e;
         }
 
         #tabs {
@@ -154,41 +160,93 @@
             flex-direction: column;
         }
 
-        iframe {
+        #preview-frame {
             width: 100%;
             height: 100%;
             border: none;
             background: white;
         }
 
-        #source-output {
+        #source-view {
+            display: flex;
+            height: 100%;
+        }
+
+        #resource-list {
+            width: 300px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .resource-section {
+            margin-bottom: 20px;
+        }
+
+        .resource-section h3 {
+            color: #58a6ff;
+            font-size: 14px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .resource-item {
+            padding: 5px;
+            margin: 2px 0;
+            font-size: 11px;
+            word-break: break-all;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .resource-item:hover {
+            background: #21262d;
+        }
+
+        .resource-item.js {
+            color: #f1e05a;
+        }
+
+        .resource-item.css {
+            color: #563d7c;
+        }
+
+        .resource-item.img {
+            color: #2ea043;
+        }
+
+        #code-editor {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+        }
+
+        #html-editor {
             width: 100%;
             height: 100%;
-            padding: 20px;
             background: #0d1117;
             color: #c9d1d9;
             font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
             font-size: 13px;
-            border: none;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
             resize: none;
             outline: none;
-            white-space: pre-wrap;
-            word-wrap: break-word;
         }
 
-        #log-output {
-            width: 100%;
-            height: 100%;
+        #log-panel {
             padding: 20px;
-            background: #0d1117;
-            color: #6e7681;
-            font-family: monospace;
-            font-size: 12px;
             overflow-y: auto;
+            background: #0d1117;
         }
 
         .log-entry {
             padding: 4px 0;
+            font-family: monospace;
+            font-size: 12px;
             border-bottom: 1px solid #21262d;
         }
 
@@ -218,38 +276,15 @@
             justify-content: space-between;
         }
 
-        .bookmarklet-section {
-            background: #21262d;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 10px 0;
-        }
-
-        .bookmarklet-link {
-            display: inline-block;
-            padding: 8px 15px;
-            background: #1f6feb;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin: 5px 5px 5px 0;
-            font-size: 13px;
-        }
-
-        .quick-links {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-            flex-wrap: wrap;
-        }
-
         .quick-link {
-            padding: 5px 12px;
+            display: inline-block;
+            padding: 4px 12px;
             background: #21262d;
             border-radius: 20px;
             color: #58a6ff;
             text-decoration: none;
             font-size: 12px;
+            margin-right: 8px;
             cursor: pointer;
         }
 
@@ -260,174 +295,168 @@
 </head>
 <body>
     <div id="header">
-        <h1>🌐 Universal Web Viewer</h1>
-        <div class="subtitle">View any website through multiple proxy methods • Works with GitHub Pages</div>
+        <h1>🏗️ Full Website Reconstructor</h1>
+        <div class="subtitle">Downloads HTML + all JS/CSS/assets • Rebuilds complete functional sites</div>
         
         <div id="url-bar">
-            <input type="text" id="url-input" placeholder="Enter URL (e.g., https://example.com)" value="https://example.com" autofocus>
-            <select id="method-select">
-                <optgroup label="📚 Archive Services">
-                    <option value="wayback">Wayback Machine (Archive.org)</option>
-                    <option value="archive-today">Archive.today</option>
-                    <option value="google-cache">Google Web Cache</option>
-                    <option value="textise">Textise (Text Only)</option>
-                </optgroup>
-                <optgroup label="🔧 Proxy Services">
-                    <option value="allorigins">AllOrigins Proxy</option>
-                    <option value="corsproxy">CORS Proxy.io</option>
-                    <option value="thingproxy">ThingProxy</option>
-                    <option value="12ft">12ft Ladder (Paywall Bypass)</option>
-                </optgroup>
-                <optgroup label="📱 Reader/Simplified">
-                    <option value="rss">RSS.app Reader</option>
-                    <option value="outline">Outline.com</option>
-                    <option value="textmode">TextMode.tv</option>
-                </optgroup>
-                <optgroup label="🔍 Search Based">
-                    <option value="google-web-light">Google Web Light</option>
-                    <option value="bing-mobile">Bing Mobile</option>
-                    <option value="startpage">Startpage Proxy</option>
-                </optgroup>
-            </select>
-            <button class="primary" onclick="loadPage()">🚀 Load Page</button>
-            <button onclick="captureSource()">📋 Capture Source</button>
-        </div>
-        
-        <div class="button-group">
-            <button onclick="downloadHTML()">💾 Download HTML</button>
-            <button onclick="copySource()">📋 Copy Source</button>
-            <button onclick="openInNewTab()">🔗 Open in New Tab</button>
-            <button class="warning" onclick="clearAll()">🗑️ Clear All</button>
+            <input type="text" id="url-input" placeholder="Enter website URL (e.g., https://example.com)" value="https://example.com" autofocus>
+            <button onclick="reconstructSite()">🔨 Reconstruct Site</button>
+            <button class="secondary" onclick="loadFromArchive()">📚 Load from Archive</button>
         </div>
         
         <div class="quick-links">
-            <span style="color:#8b949e;font-size:12px;margin-right:10px">Quick:</span>
-            <span class="quick-link" onclick="setUrl('https://www.google.com')">Google</span>
-            <span class="quick-link" onclick="setUrl('https://www.wikipedia.org')">Wikipedia</span>
-            <span class="quick-link" onclick="setUrl('https://github.com')">GitHub</span>
-            <span class="quick-link" onclick="setUrl('https://www.reddit.com')">Reddit</span>
-            <span class="quick-link" onclick="setUrl('https://news.ycombinator.com')">Hacker News</span>
+            <span class="quick-link" onclick="setUrl('https://example.com')">Example</span>
+            <span class="quick-link" onclick="setUrl('https://html5games.com')">HTML5 Games</span>
+            <span class="quick-link" onclick="setUrl('https://js13kgames.com')">JS13K Games</span>
+            <span class="quick-link" onclick="setUrl('https://diep.io')">Diep.io</span>
             <span class="quick-link" onclick="setUrl(prompt('Enter URL:'))">+ Custom</span>
         </div>
         
+        <div id="progress-container">
+            <div id="progress-bar">
+                <div id="progress-fill"></div>
+            </div>
+            <div id="progress-text">Ready</div>
+        </div>
+        
         <div id="tabs">
-            <button class="tab active" onclick="switchTab('view')">👁️ View</button>
-            <button class="tab" onclick="switchTab('source')">📄 Source</button>
-            <button class="tab" onclick="switchTab('split')">🔲 Split View</button>
-            <button class="tab" onclick="switchTab('bookmarklets')">📌 Bookmarklets</button>
+            <button class="tab active" onclick="switchTab('preview')">👁️ Live Preview</button>
+            <button class="tab" onclick="switchTab('source')">📄 Source Editor</button>
+            <button class="tab" onclick="switchTab('resources')">📦 Resources</button>
             <button class="tab" onclick="switchTab('logs')">📋 Logs</button>
         </div>
     </div>
     
     <div id="content">
-        <!-- View Panel -->
-        <div id="view-panel" class="panel active">
-            <iframe id="viewer-frame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+        <!-- Preview Panel -->
+        <div id="preview-panel" class="panel active">
+            <iframe id="preview-frame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-pointer-lock"></iframe>
         </div>
         
         <!-- Source Panel -->
         <div id="source-panel" class="panel">
-            <textarea id="source-output" placeholder="Page source will appear here..."></textarea>
-        </div>
-        
-        <!-- Split Panel -->
-        <div id="split-panel" class="panel">
-            <div style="display:flex;height:100%">
-                <iframe id="split-frame" style="width:50%;height:100%;border-right:2px solid #30363d"></iframe>
-                <textarea id="split-source" style="width:50%;height:100%;padding:15px;background:#0d1117;color:#c9d1d9;font-family:monospace;border:none;resize:none;font-size:12px" placeholder="Source will appear here..." readonly></textarea>
+            <div style="display:flex;height:100%;padding:10px;gap:10px;background:#161b22">
+                <div style="flex:1;display:flex;flex-direction:column">
+                    <div style="margin-bottom:10px">
+                        <button onclick="applyHtmlChanges()" style="padding:8px 16px">▶️ Apply Changes</button>
+                        <button onclick="downloadReconstructed()" class="secondary" style="margin-left:10px">💾 Download Full Site</button>
+                        <button onclick="copyHtml()" class="secondary">📋 Copy HTML</button>
+                    </div>
+                    <textarea id="html-editor" placeholder="HTML will appear here..."></textarea>
+                </div>
             </div>
         </div>
         
-        <!-- Bookmarklets Panel -->
-        <div id="bookmarklets-panel" class="panel">
-            <div style="padding:20px;overflow-y:auto">
-                <h2 style="color:#58a6ff;margin-bottom:20px">📌 Bookmarklets</h2>
-                <p style="margin-bottom:20px;color:#8b949e">Drag these to your bookmarks bar or copy the code to create new bookmarks</p>
-                
-                <div class="bookmarklet-section">
-                    <h3 style="margin-bottom:10px">🚀 Quick Access</h3>
-                    <a class="bookmarklet-link" href="javascript:(function(){var url=prompt('Enter URL:');if(url){if(!url.startsWith('http'))url='https://'+url;window.open('https://web.archive.org/web/'+url,'_blank');}})();">Archive.org Viewer</a>
-                    <a class="bookmarklet-link" href="javascript:(function(){window.open('https://webcache.googleusercontent.com/search?q=cache:'+encodeURIComponent(location.href),'_blank');})();">Google Cache</a>
-                    <a class="bookmarklet-link" href="javascript:(function(){window.open('https://12ft.io/'+location.href,'_blank');})();">12ft Ladder</a>
-                    <a class="bookmarklet-link" href="javascript:(function(){window.open('https://www.textise.net/?url='+encodeURIComponent(location.href),'_blank');})();">Textise</a>
+        <!-- Resources Panel -->
+        <div id="resources-panel" class="panel">
+            <div id="source-view">
+                <div id="resource-list">
+                    <div class="resource-section">
+                        <h3>📜 JavaScript Files (<span id="js-count">0</span>)</h3>
+                        <div id="js-list"></div>
+                    </div>
+                    <div class="resource-section">
+                        <h3>🎨 CSS Files (<span id="css-count">0</span>)</h3>
+                        <div id="css-list"></div>
+                    </div>
+                    <div class="resource-section">
+                        <h3>🖼️ Images (<span id="img-count">0</span>)</h3>
+                        <div id="img-list"></div>
+                    </div>
+                    <div class="resource-section">
+                        <h3>🔗 Other Resources</h3>
+                        <div id="other-list"></div>
+                    </div>
                 </div>
-                
-                <div class="bookmarklet-section">
-                    <h3 style="margin-bottom:10px">📖 Reader Mode</h3>
-                    <a class="bookmarklet-link" href="javascript:(function(){window.open('https://outline.com/'+location.href,'_blank');})();">Outline.com</a>
-                    <a class="bookmarklet-link" href="javascript:(function(){window.open('https://rss.app/embed/'+encodeURIComponent(location.href),'_blank');})();">RSS.app</a>
-                </div>
-                
-                <div class="bookmarklet-section">
-                    <h3 style="margin-bottom:10px">📋 Custom Bookmarklet Code</h3>
-                    <textarea id="bookmarklet-code" style="width:100%;height:100px;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:10px;font-family:monospace;margin-bottom:10px">javascript:(function(){location.href='https://web.archive.org/web/'+location.href;})();</textarea>
-                    <button onclick="testBookmarklet()">🧪 Test Bookmarklet</button>
-                    <button onclick="copyBookmarklet()">📋 Copy Code</button>
+                <div id="code-editor">
+                    <textarea id="resource-content" style="width:100%;height:100%;background:#0d1117;color:#c9d1d9;font-family:monospace;font-size:12px;border:1px solid #30363d;border-radius:6px;padding:15px;resize:none" placeholder="Select a resource to view its content" readonly></textarea>
                 </div>
             </div>
         </div>
         
         <!-- Logs Panel -->
         <div id="logs-panel" class="panel">
-            <div id="log-output">
-                <div class="log-entry log-info">🚀 Universal Web Viewer initialized</div>
-                <div class="log-entry log-info">📅 Ready to load pages</div>
-            </div>
+            <div id="log-panel"></div>
         </div>
     </div>
     
     <div id="status-bar">
         <span id="status-text">Ready</span>
-        <span id="url-display"></span>
+        <span id="stats-display"></span>
     </div>
 
     <script>
         // State management
-        let currentUrl = 'https://example.com';
-        let currentSource = '';
+        let currentUrl = '';
+        let originalHtml = '';
+        let processedHtml = '';
+        let resources = {
+            js: new Map(),
+            css: new Map(),
+            img: new Map(),
+            other: new Map()
+        };
         let logs = [];
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('url')) {
-                const decodedUrl = decodeURIComponent(urlParams.get('url'));
-                document.getElementById('url-input').value = decodedUrl;
-                loadPage();
-            } else {
-                loadPage();
-            }
+            addLog('🏗️ Website Reconstructor initialized', 'success');
+            addLog('Enter a URL and click "Reconstruct Site"', 'info');
             
-            // Enter key to load
             document.getElementById('url-input').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') loadPage();
+                if (e.key === 'Enter') reconstructSite();
             });
         });
         
-        // Add log entry
+        // Logging function
         function addLog(message, type = 'info') {
-            const logOutput = document.getElementById('log-output');
+            const logPanel = document.getElementById('log-panel');
             const entry = document.createElement('div');
             entry.className = `log-entry log-${type}`;
             const timestamp = new Date().toLocaleTimeString();
             entry.textContent = `[${timestamp}] ${message}`;
-            logOutput.appendChild(entry);
-            logOutput.scrollTop = logOutput.scrollHeight;
+            logPanel.appendChild(entry);
+            logPanel.scrollTop = logPanel.scrollHeight;
             
             logs.push({ timestamp, message, type });
-            
-            // Update status
             document.getElementById('status-text').textContent = message;
         }
         
-        // Set URL helper
+        // Set URL
         function setUrl(url) {
             document.getElementById('url-input').value = url;
-            loadPage();
+            reconstructSite();
         }
         
-        // Load page through selected method
-        async function loadPage() {
+        // Load from Internet Archive
+        function loadFromArchive() {
+            const url = document.getElementById('url-input').value.trim();
+            if (!url) return;
+            
+            const archiveUrl = `https://web.archive.org/web/${url}`;
+            document.getElementById('url-input').value = archiveUrl;
+            reconstructSite();
+        }
+        
+        // Update progress
+        function updateProgress(percent, text) {
+            const container = document.getElementById('progress-container');
+            const fill = document.getElementById('progress-fill');
+            const textEl = document.getElementById('progress-text');
+            
+            container.style.display = 'block';
+            fill.style.width = percent + '%';
+            textEl.textContent = text;
+            
+            if (percent >= 100) {
+                setTimeout(() => {
+                    container.style.display = 'none';
+                }, 1000);
+            }
+        }
+        
+        // Main reconstruction function
+        async function reconstructSite() {
             let url = document.getElementById('url-input').value.trim();
             if (!url) return;
             
@@ -437,194 +466,258 @@
             }
             
             currentUrl = url;
-            const method = document.getElementById('method-select').value;
             
-            addLog(`Loading: ${url} via ${method}`, 'info');
-            document.getElementById('url-display').textContent = url;
+            // Reset state
+            resources = { js: new Map(), css: new Map(), img: new Map(), other: new Map() };
             
-            // Build proxy URL
-            let proxyUrl = buildProxyUrl(url, method);
+            addLog(`🔍 Starting reconstruction of: ${url}`, 'info');
+            updateProgress(10, 'Fetching HTML...');
             
-            // Load in viewer
-            const frame = document.getElementById('viewer-frame');
-            const splitFrame = document.getElementById('split-frame');
-            
-            frame.src = proxyUrl;
-            splitFrame.src = proxyUrl;
-            
-            // Fetch source if needed
-            if (method !== 'wayback' && method !== 'archive-today') {
-                fetchSource(proxyUrl);
-            } else {
-                setTimeout(() => fetchSource(proxyUrl), 2000);
-            }
-            
-            addLog(`Page loaded: ${proxyUrl}`, 'success');
-        }
-        
-        // Build proxy URL based on method
-        function buildProxyUrl(url, method) {
-            const encoded = encodeURIComponent(url);
-            
-            const proxies = {
-                wayback: `https://web.archive.org/web/${url}`,
-                'archive-today': `https://archive.today/submit/?url=${encoded}`,
-                'google-cache': `https://webcache.googleusercontent.com/search?q=cache:${encoded}`,
-                textise: `https://www.textise.net/?url=${encoded}`,
-                allorigins: `https://api.allorigins.win/raw?url=${encoded}`,
-                corsproxy: `https://corsproxy.io/?${encoded}`,
-                thingproxy: `https://thingproxy.freeboard.io/fetch/${url}`,
-                '12ft': `https://12ft.io/${url}`,
-                rss: `https://rss.app/embed/${encoded}`,
-                outline: `https://outline.com/${url}`,
-                textmode: `https://textmode.tv/${url}`,
-                'google-web-light': `https://www.google.com/search?q=${encoded}&btnI`,
-                'bing-mobile': `https://www.bing.com/search?q=${encoded}&f=1`,
-                startpage: `https://www.startpage.com/sp/search?q=${encoded}`
-            };
-            
-            return proxies[method] || url;
-        }
-        
-        // Fetch page source
-        async function fetchSource(fetchUrl) {
             try {
-                addLog(`Fetching source from: ${fetchUrl}`, 'info');
+                // Step 1: Fetch HTML
+                const html = await fetchWithProxy(url);
+                originalHtml = html;
                 
-                // Try direct fetch first
-                let response;
-                try {
-                    response = await fetch(fetchUrl);
-                } catch (e) {
-                    // Fallback to CORS proxy
-                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(fetchUrl)}`;
-                    response = await fetch(proxyUrl);
-                }
+                addLog(`📄 HTML fetched: ${html.length} characters`, 'success');
+                updateProgress(30, 'Parsing HTML...');
                 
-                if (response.ok) {
-                    const html = await response.text();
-                    currentSource = html;
-                    
-                    document.getElementById('source-output').value = html;
-                    document.getElementById('split-source').value = html;
-                    
-                    addLog(`Source fetched: ${html.length} characters`, 'success');
-                } else {
-                    addLog(`Failed to fetch source: HTTP ${response.status}`, 'error');
-                }
+                // Step 2: Parse HTML and find resources
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const baseUrl = new URL(url);
+                
+                // Extract all resources
+                const resourceUrls = extractResources(doc, baseUrl);
+                
+                addLog(`📦 Found ${resourceUrls.length} resources`, 'info');
+                updateProgress(40, `Found ${resourceUrls.length} resources...`);
+                
+                // Step 3: Fetch all resources
+                await fetchAllResources(resourceUrls, baseUrl);
+                
+                // Step 4: Reconstruct HTML with local resources
+                updateProgress(80, 'Reconstructing page...');
+                processedHtml = reconstructHtml(doc, baseUrl);
+                
+                // Step 5: Display results
+                document.getElementById('html-editor').value = processedHtml;
+                updateResourceLists();
+                updatePreview(processedHtml);
+                
+                updateProgress(100, 'Reconstruction complete!');
+                addLog(`✅ Site reconstructed successfully!`, 'success');
+                addLog(`📊 Stats: ${resources.js.size} JS, ${resources.css.size} CSS, ${resources.img.size} images`, 'info');
+                
+                document.getElementById('stats-display').textContent = 
+                    `${resources.js.size} JS • ${resources.css.size} CSS • ${resources.img.size} IMG`;
+                
             } catch (error) {
-                addLog(`Error fetching source: ${error.message}`, 'error');
-                
-                // Try to get source from iframe
+                addLog(`❌ Reconstruction failed: ${error.message}`, 'error');
+                updateProgress(0, 'Failed');
+            }
+        }
+        
+        // Fetch with multiple proxy fallbacks
+        async function fetchWithProxy(url) {
+            const proxies = [
+                { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` },
+                { url: `https://corsproxy.io/?${encodeURIComponent(url)}` },
+                { url: `https://thingproxy.freeboard.io/fetch/${url}` },
+                { url: url } // Direct as last resort
+            ];
+            
+            for (const proxy of proxies) {
                 try {
-                    const frame = document.getElementById('viewer-frame');
-                    const doc = frame.contentDocument || frame.contentWindow.document;
-                    if (doc) {
-                        const html = doc.documentElement.outerHTML;
-                        currentSource = html;
-                        document.getElementById('source-output').value = html;
-                        document.getElementById('split-source').value = html;
-                        addLog('Source retrieved from iframe', 'success');
+                    addLog(`Trying proxy: ${proxy.url.substring(0, 50)}...`, 'info');
+                    const response = await fetch(proxy.url);
+                    if (response.ok) {
+                        return await response.text();
                     }
                 } catch (e) {
-                    addLog('Cannot access iframe source (CORS)', 'warning');
-                    document.getElementById('source-output').value = 'Cannot access source due to CORS restrictions.\nTry using "Capture Source" button or switch to a different method.';
+                    continue;
+                }
+            }
+            
+            throw new Error('All fetch methods failed');
+        }
+        
+        // Extract resources from document
+        function extractResources(doc, baseUrl) {
+            const resources = [];
+            
+            // Scripts
+            doc.querySelectorAll('script[src]').forEach(el => {
+                const src = el.getAttribute('src');
+                if (src) resources.push({ type: 'js', url: new URL(src, baseUrl).href });
+            });
+            
+            // Stylesheets
+            doc.querySelectorAll('link[rel="stylesheet"]').forEach(el => {
+                const href = el.getAttribute('href');
+                if (href) resources.push({ type: 'css', url: new URL(href, baseUrl).href });
+            });
+            
+            // Images
+            doc.querySelectorAll('img[src]').forEach(el => {
+                const src = el.getAttribute('src');
+                if (src && !src.startsWith('data:')) {
+                    resources.push({ type: 'img', url: new URL(src, baseUrl).href });
+                }
+            });
+            
+            return resources;
+        }
+        
+        // Fetch all resources
+        async function fetchAllResources(resourceUrls, baseUrl) {
+            const total = resourceUrls.length;
+            let completed = 0;
+            
+            for (const resource of resourceUrls) {
+                try {
+                    addLog(`Fetching: ${resource.url.substring(0, 60)}...`, 'info');
+                    
+                    const content = await fetchWithProxy(resource.url);
+                    const filename = resource.url.split('/').pop() || `${resource.type}_${Date.now()}`;
+                    
+                    resources[resource.type].set(resource.url, {
+                        url: resource.url,
+                        filename: filename,
+                        content: content
+                    });
+                    
+                    completed++;
+                    const percent = 40 + (completed / total) * 40;
+                    updateProgress(percent, `Fetched ${completed}/${total} resources...`);
+                    
+                } catch (error) {
+                    addLog(`Failed to fetch ${resource.url}: ${error.message}`, 'warning');
                 }
             }
         }
         
-        // Capture source manually
-        function captureSource() {
-            const url = document.getElementById('url-input').value;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-            fetchSource(proxyUrl);
+        // Reconstruct HTML with inline resources
+        function reconstructHtml(doc, baseUrl) {
+            let html = originalHtml;
+            
+            // Replace script sources with inline
+            resources.js.forEach((resource, url) => {
+                const scriptPattern = new RegExp(`<script[^>]*src=["']${escapeRegex(url)}["'][^>]*>`, 'g');
+                html = html.replace(scriptPattern, `<script>${resource.content}</script>`);
+            });
+            
+            // Replace CSS links with inline style
+            resources.css.forEach((resource, url) => {
+                const linkPattern = new RegExp(`<link[^>]*href=["']${escapeRegex(url)}["'][^>]*>`, 'g');
+                html = html.replace(linkPattern, `<style>${resource.content}</style>`);
+            });
+            
+            // Add base tag
+            if (!html.includes('<base')) {
+                html = html.replace('<head>', `<head>\n<base href="${baseUrl.origin}/">`);
+            }
+            
+            return html;
         }
         
-        // Download HTML
-        function downloadHTML() {
-            if (!currentSource) {
-                alert('No source available. Load a page first.');
+        // Escape regex special characters
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // Update resource lists in UI
+        function updateResourceLists() {
+            const jsList = document.getElementById('js-list');
+            const cssList = document.getElementById('css-list');
+            const imgList = document.getElementById('img-list');
+            
+            jsList.innerHTML = '';
+            cssList.innerHTML = '';
+            imgList.innerHTML = '';
+            
+            resources.js.forEach((resource, url) => {
+                const item = createResourceItem(url, 'js', resource);
+                jsList.appendChild(item);
+            });
+            
+            resources.css.forEach((resource, url) => {
+                const item = createResourceItem(url, 'css', resource);
+                cssList.appendChild(item);
+            });
+            
+            resources.img.forEach((resource, url) => {
+                const item = createResourceItem(url, 'img', resource);
+                imgList.appendChild(item);
+            });
+            
+            document.getElementById('js-count').textContent = resources.js.size;
+            document.getElementById('css-count').textContent = resources.css.size;
+            document.getElementById('img-count').textContent = resources.img.size;
+        }
+        
+        // Create resource item element
+        function createResourceItem(url, type, resource) {
+            const div = document.createElement('div');
+            div.className = `resource-item ${type}`;
+            div.textContent = resource.filename || url.split('/').pop() || url;
+            div.title = url;
+            div.onclick = () => {
+                document.getElementById('resource-content').value = resource.content || url;
+            };
+            return div;
+        }
+        
+        // Update preview
+        function updatePreview(html) {
+            const frame = document.getElementById('preview-frame');
+            frame.srcdoc = html;
+        }
+        
+        // Apply HTML changes from editor
+        function applyHtmlChanges() {
+            const html = document.getElementById('html-editor').value;
+            processedHtml = html;
+            updatePreview(html);
+            addLog('Changes applied to preview', 'success');
+        }
+        
+        // Download reconstructed site
+        function downloadReconstructed() {
+            if (!processedHtml) {
+                alert('No content to download');
                 return;
             }
             
-            const blob = new Blob([currentSource], { type: 'text/html' });
+            const blob = new Blob([processedHtml], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `page-${Date.now()}.html`;
+            a.download = `reconstructed-${Date.now()}.html`;
             a.click();
             URL.revokeObjectURL(url);
             
-            addLog('HTML file downloaded', 'success');
+            addLog('Reconstructed site downloaded', 'success');
         }
         
-        // Copy source to clipboard
-        function copySource() {
-            if (!currentSource) {
-                alert('No source to copy');
-                return;
-            }
-            
-            navigator.clipboard.writeText(currentSource).then(() => {
-                addLog('Source copied to clipboard', 'success');
-                alert('Source copied!');
-            }).catch(err => {
-                addLog(`Failed to copy: ${err}`, 'error');
+        // Copy HTML to clipboard
+        function copyHtml() {
+            const html = document.getElementById('html-editor').value;
+            navigator.clipboard.writeText(html).then(() => {
+                addLog('HTML copied to clipboard', 'success');
             });
-        }
-        
-        // Open in new tab
-        function openInNewTab() {
-            const url = document.getElementById('viewer-frame').src;
-            window.open(url, '_blank');
-            addLog(`Opened in new tab: ${url}`, 'info');
         }
         
         // Switch tabs
         function switchTab(tabName) {
-            // Update tab buttons
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             event.target.classList.add('active');
             
-            // Update panels
             document.querySelectorAll('.panel').forEach(panel => {
                 panel.classList.remove('active');
             });
             document.getElementById(`${tabName}-panel`).classList.add('active');
-            
-            addLog(`Switched to ${tabName} view`, 'info');
-        }
-        
-        // Clear all
-        function clearAll() {
-            if (confirm('Clear all logs and source?')) {
-                document.getElementById('source-output').value = '';
-                document.getElementById('split-source').value = '';
-                document.getElementById('log-output').innerHTML = '<div class="log-entry log-info">🚀 Logs cleared</div>';
-                currentSource = '';
-                addLog('All cleared', 'info');
-            }
-        }
-        
-        // Bookmarklet functions
-        function testBookmarklet() {
-            const code = document.getElementById('bookmarklet-code').value;
-            try {
-                eval(code.replace('javascript:', ''));
-                addLog('Bookmarklet executed', 'success');
-            } catch (e) {
-                addLog(`Bookmarklet error: ${e.message}`, 'error');
-            }
-        }
-        
-        function copyBookmarklet() {
-            const code = document.getElementById('bookmarklet-code').value;
-            navigator.clipboard.writeText(code).then(() => {
-                addLog('Bookmarklet code copied', 'success');
-                alert('Code copied! Create a new bookmark and paste this as the URL.');
-            });
         }
         
         // Handle errors
@@ -632,9 +725,7 @@
             addLog(`Error: ${msg} at line ${line}`, 'error');
         };
         
-        // Add initial log
-        addLog('Universal Web Viewer ready', 'success');
-        addLog('Select a method and enter a URL to begin', 'info');
+        addLog('Ready to reconstruct websites', 'success');
     </script>
 </body>
 </html>
