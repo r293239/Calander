@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Full Site Scraper</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <h1>Full Site Downloader</h1>
+    <input type="text" id="url" placeholder="Website URL" style="width:400px">
+    <button onclick="scrapeSite()">Download Entire Site</button>
+    <pre id="log"></pre>
+
+    <script>
+        async function scrapeSite() {
+            const url = document.getElementById('url').value;
+            const log = document.getElementById('log');
+            
+            log.textContent = 'Fetching page...';
+            
+            try {
+                const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                const response = await fetch(proxy);
+                let html = await response.text();
+                
+                const zip = new JSZip();
+                
+                // Add HTML file
+                zip.file("index.html", html);
+                
+                // Find all assets
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Extract CSS links
+                const cssLinks = [...doc.querySelectorAll('link[rel="stylesheet"]')];
+                for (const link of cssLinks) {
+                    const href = link.href;
+                    if (href) {
+                        try {
+                            const cssProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(href)}`;
+                            const cssResponse = await fetch(cssProxy);
+                            const css = await cssResponse.text();
+                            const filename = href.split('/').pop() || 'style.css';
+                            zip.file(`css/${filename}`, css);
+                            log.textContent += `\nDownloaded: ${filename}`;
+                        } catch(e) {}
+                    }
+                }
+                
+                // Extract JS files
+                const scripts = [...doc.querySelectorAll('script[src]')];
+                for (const script of scripts) {
+                    const src = script.src;
+                    if (src) {
+                        try {
+                            const jsProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(src)}`;
+                            const jsResponse = await fetch(jsProxy);
+                            const js = await jsResponse.text();
+                            const filename = src.split('/').pop() || 'script.js';
+                            zip.file(`js/${filename}`, js);
+                            log.textContent += `\nDownloaded: ${filename}`;
+                        } catch(e) {}
+                    }
+                }
+                
+                // Generate ZIP
+                const content = await zip.generateAsync({ type: "blob" });
+                saveAs(content, "cloned-site.zip");
+                log.textContent += '\n✅ ZIP file ready! Upload to GitHub and enable Pages.';
+                
+            } catch (error) {
+                log.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
