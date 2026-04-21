@@ -146,7 +146,8 @@
         <input type="text" id="url-input" placeholder="https://example.com" value="https://example.com">
         <select id="method-select">
             <option value="archive">📦 Archive</option>
-            <option value="proxy">🔧 Proxy</option>
+            <option value="proxy">🌐 WebProxy</option>
+            <option value="direct">➡️ Direct</option>
         </select>
         <button class="primary" id="loadBtn">🌐 LOAD</button>
         <button id="getSourceBtn">📄 SOURCE</button>
@@ -163,6 +164,7 @@
         <span class="quick-link" data-url="https://github.com">GitHub</span>
         <span class="quick-link" data-url="https://news.ycombinator.com">HN</span>
         <span class="quick-link" data-url="https://example.com">Example</span>
+        <span class="quick-link" data-url="https://info.cern.ch">CERN</span>
     </div>
     <div class="tabs">
         <button class="tab active" data-tab="view">👁️ View</button>
@@ -173,7 +175,7 @@
 
 <div id="content">
     <div id="view-panel" class="panel active">
-        <iframe id="viewer-frame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation allow-downloads"></iframe>
+        <iframe id="viewer-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation allow-downloads allow-pointer-lock allow-popups-to-escape-sandbox"></iframe>
     </div>
     <div id="source-panel" class="panel">
         <textarea id="source-output" class="source-area" readonly placeholder="// Click SOURCE to fetch HTML"></textarea>
@@ -181,7 +183,7 @@
     <div id="logs-panel" class="panel">
         <div id="log-output" class="log-box">
             <div class="log-entry log-info">⚡ Proxy Ready</div>
-            <div class="log-entry log-success">✅ Archive or Proxy mode</div>
+            <div class="log-entry log-success">✅ Use WebProxy for full JS support</div>
         </div>
     </div>
 </div>
@@ -200,18 +202,17 @@
     const urlDisplaySpan = document.getElementById('url-display');
 
     let currentHtml = '';
-    let currentBaseUrl = '';
     
-    // Enhanced proxy list with proper formats
-    const CORS_PROXIES = [
-        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
-        { name: 'CORSProxy', url: 'https://corsproxy.io/?' },
-        { name: 'CORSAnywhere', url: 'https://cors-anywhere.herokuapp.com/' },
-        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
-        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }
+    // Working web proxies that handle JavaScript properly
+    const WEB_PROXIES = [
+        { name: 'CroxyProxy', url: 'https://www.croxyproxy.com/' },
+        { name: 'ProxySite', url: 'https://www.proxysite.com/' },
+        { name: 'BlockAway', url: 'https://www.blockaway.com/' },
+        { name: 'GenMirror', url: 'https://www.genmirror.com/' },
+        { name: 'Proxyium', url: 'https://proxyium.com/' }
     ];
     
-    let currentProxyIndex = 0;
+    let currentWebProxy = 0;
 
     function addLog(msg, type = 'info') {
         const entry = document.createElement('div');
@@ -224,214 +225,43 @@
         while (logContainer.children.length > 150) logContainer.removeChild(logContainer.firstChild);
     }
 
-    function getProxyUrl(url) {
-        const proxy = CORS_PROXIES[currentProxyIndex];
-        // Special handling for corsproxy.io
-        if (proxy.url.includes('corsproxy.io')) {
-            return proxy.url + encodeURIComponent(url);
+    function buildProxyUrl(targetUrl, proxyIndex) {
+        const proxy = WEB_PROXIES[proxyIndex];
+        
+        // Different proxies have different URL patterns
+        switch(proxy.name) {
+            case 'CroxyProxy':
+                return `${proxy.url}_${targetUrl}`;
+            case 'ProxySite':
+                return `${proxy.url}?q=${encodeURIComponent(targetUrl)}`;
+            case 'BlockAway':
+                return `${proxy.url}?u=${encodeURIComponent(targetUrl)}`;
+            case 'GenMirror':
+                return `${proxy.url}?url=${encodeURIComponent(targetUrl)}`;
+            case 'Proxyium':
+                return `${proxy.url}?url=${encodeURIComponent(targetUrl)}`;
+            default:
+                return `${proxy.url}?url=${encodeURIComponent(targetUrl)}`;
         }
-        return proxy.url + encodeURIComponent(url);
     }
 
-    function rewriteHtml(html, baseUrl) {
-        const urlObj = new URL(baseUrl);
-        const baseOrigin = urlObj.origin;
-        const basePath = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
+    function loadWebProxy(url) {
+        if (!url.startsWith('http')) url = 'https://' + url;
         
-        // Inject base tag and referrer meta
-        if (!html.includes('<base')) {
-            html = html.replace(/<head[^>]*>/, `$&\n<base href="${baseUrl}">\n<meta name="referrer" content="no-referrer">`);
-        }
+        const proxyUrl = buildProxyUrl(url, currentWebProxy);
+        addLog(`Loading via ${WEB_PROXIES[currentWebProxy].name}`, 'info');
         
-        // Inject script to handle dynamic requests
-        const injectScript = `
-            <script>
-            (function() {
-                const originalFetch = window.fetch;
-                const originalXHROpen = XMLHttpRequest.prototype.open;
-                const proxyBase = '${CORS_PROXIES[currentProxyIndex].url}';
-                
-                window.fetch = function(url, options) {
-                    if (typeof url === 'string' && url.startsWith('http')) {
-                        url = proxyBase + encodeURIComponent(url);
-                    }
-                    return originalFetch.call(this, url, options);
-                };
-                
-                XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
-                    if (typeof url === 'string' && url.startsWith('http')) {
-                        url = proxyBase + encodeURIComponent(url);
-                    }
-                    return originalXHROpen.call(this, method, url, async, user, pass);
-                };
-            })();
-            <\/script>
-        `;
-        html = html.replace(/<head[^>]*>/, `$&\n${injectScript}`);
+        viewerFrame.src = proxyUrl;
+        urlDisplaySpan.textContent = url;
         
-        // Rewrite all resource URLs
-        const rewrites = [
-            { attr: 'src', tags: ['script', 'img', 'iframe', 'video', 'audio', 'source', 'embed', 'track'] },
-            { attr: 'href', tags: ['link'] },
-            { attr: 'srcset', tags: ['img', 'source'] },
-            { attr: 'data-src', tags: ['img'] },
-            { attr: 'poster', tags: ['video'] }
-        ];
+        viewerFrame.onload = () => {
+            addLog(`Loaded with full JS support`, 'success');
+        };
         
-        rewrites.forEach(({ attr, tags }) => {
-            tags.forEach(tag => {
-                const regex = new RegExp(`<${tag}[^>]*${attr}=["']([^"']+)["'][^>]*>`, 'gi');
-                html = html.replace(regex, (match, url) => {
-                    if (url.startsWith('data:') || url.startsWith('#') || url.startsWith('blob:')) {
-                        return match;
-                    }
-                    
-                    try {
-                        let absolute;
-                        if (url.startsWith('//')) {
-                            absolute = 'https:' + url;
-                        } else if (url.startsWith('/')) {
-                            absolute = baseOrigin + url;
-                        } else if (!url.startsWith('http')) {
-                            absolute = baseOrigin + basePath + url;
-                        } else {
-                            absolute = url;
-                        }
-                        
-                        if (absolute.startsWith('http')) {
-                            const proxied = getProxyUrl(absolute);
-                            return match.replace(url, proxied);
-                        }
-                        return match.replace(url, absolute);
-                    } catch(e) {
-                        return match;
-                    }
-                });
-            });
-        });
-        
-        // Rewrite url() in CSS
-        html = html.replace(/url\(["']?([^)"']+)["']?\)/gi, (match, url) => {
-            if (url.startsWith('data:')) return match;
-            
-            try {
-                let absolute;
-                if (url.startsWith('//')) {
-                    absolute = 'https:' + url;
-                } else if (url.startsWith('/')) {
-                    absolute = baseOrigin + url;
-                } else if (!url.startsWith('http')) {
-                    absolute = baseOrigin + basePath + url;
-                } else {
-                    absolute = url;
-                }
-                
-                if (absolute.startsWith('http')) {
-                    const proxied = getProxyUrl(absolute);
-                    return `url("${proxied}")`;
-                }
-                return `url("${absolute}")`;
-            } catch(e) {
-                return match;
-            }
-        });
-        
-        // Rewrite @import
-        html = html.replace(/@import\s+["']([^"']+)["']/gi, (match, url) => {
-            try {
-                let absolute;
-                if (url.startsWith('//')) {
-                    absolute = 'https:' + url;
-                } else if (url.startsWith('/')) {
-                    absolute = baseOrigin + url;
-                } else if (!url.startsWith('http')) {
-                    absolute = baseOrigin + basePath + url;
-                } else {
-                    absolute = url;
-                }
-                
-                if (absolute.startsWith('http')) {
-                    const proxied = getProxyUrl(absolute);
-                    return `@import "${proxied}"`;
-                }
-                return `@import "${absolute}"`;
-            } catch(e) {
-                return match;
-            }
-        });
-        
-        return html;
-    }
-
-    async function fetchWithRetry(url, retries = 5) {
-        let lastError;
-        
-        for (let i = 0; i < retries; i++) {
-            const proxy = CORS_PROXIES[currentProxyIndex];
-            addLog(`Trying ${proxy.name}...`, 'info');
-            
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 20000);
-                
-                const fetchUrl = getProxyUrl(url);
-                const response = await fetch(fetchUrl, { 
-                    signal: controller.signal,
-                    headers: {
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.5',
-                        'Referer': url
-                    }
-                });
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const text = await response.text();
-                addLog(`Success with ${proxy.name}`, 'success');
-                return text;
-                
-            } catch (error) {
-                addLog(`${proxy.name} failed: ${error.message}`, 'warning');
-                currentProxyIndex = (currentProxyIndex + 1) % CORS_PROXIES.length;
-                lastError = error;
-            }
-        }
-        
-        throw lastError || new Error('All proxies failed');
-    }
-
-    async function fetchAndProxy(url) {
-        addLog(`Fetching: ${url}`, 'info');
-        
-        try {
-            const html = await fetchWithRetry(url);
-            currentBaseUrl = url;
-            
-            addLog(`Rewriting resources...`, 'info');
-            const proxiedHtml = rewriteHtml(html, url);
-            currentHtml = proxiedHtml;
-            
-            sourceOutput.value = `<!-- URL: ${url} -->\n<!-- Proxy: ${CORS_PROXIES[currentProxyIndex].name} -->\n<!-- Size: ${proxiedHtml.length} bytes -->\n\n${proxiedHtml}`;
-            
-            const blob = new Blob([proxiedHtml], { type: 'text/html' });
-            const blobUrl = URL.createObjectURL(blob);
-            
-            viewerFrame.src = blobUrl;
-            
-            viewerFrame.onload = () => {
-                URL.revokeObjectURL(blobUrl);
-                addLog(`Page loaded`, 'success');
-            };
-            
-            urlDisplaySpan.textContent = url;
-            
-        } catch (error) {
-            addLog(`Failed: ${error.message}`, 'error');
-            sourceOutput.value = `// Error: ${error.message}`;
-        }
+        viewerFrame.onerror = () => {
+            addLog(`Failed to load, try next proxy`, 'warning');
+            currentWebProxy = (currentWebProxy + 1) % WEB_PROXIES.length;
+        };
     }
 
     function loadArchive(url) {
@@ -444,6 +274,15 @@
         addLog(`Archive mode`, 'success');
     }
 
+    function loadDirect(url) {
+        if (!url.startsWith('http')) url = 'https://' + url;
+        
+        addLog(`Direct: ${url}`, 'info');
+        viewerFrame.src = url;
+        urlDisplaySpan.textContent = url;
+        addLog(`Direct mode`, 'success');
+    }
+
     function loadPage() {
         let targetUrl = urlInput.value.trim();
         if (!targetUrl) return;
@@ -454,8 +293,10 @@
         
         if (method === 'archive') {
             loadArchive(targetUrl);
+        } else if (method === 'direct') {
+            loadDirect(targetUrl);
         } else {
-            fetchAndProxy(targetUrl);
+            loadWebProxy(targetUrl);
         }
     }
 
@@ -470,14 +311,19 @@
         addLog(`Fetching source: ${targetUrl}`, 'info');
         
         try {
-            const html = await fetchWithRetry(targetUrl);
-            const proxiedHtml = rewriteHtml(html, targetUrl);
-            currentHtml = proxiedHtml;
-            currentBaseUrl = targetUrl;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const response = await fetch(proxyUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
             
-            sourceOutput.value = `<!-- URL: ${targetUrl} -->\n<!-- Proxy: ${CORS_PROXIES[currentProxyIndex].name} -->\n<!-- Size: ${proxiedHtml.length} bytes -->\n\n${proxiedHtml}`;
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const html = await response.text();
+            currentHtml = html;
             
-            addLog(`Source: ${proxiedHtml.length} bytes`, 'success');
+            sourceOutput.value = `<!-- URL: ${targetUrl} -->\n<!-- Size: ${html.length} bytes -->\n\n${html}`;
+            
+            addLog(`Source: ${html.length} bytes`, 'success');
             switchTab('source');
         } catch (error) {
             addLog(`Failed: ${error.message}`, 'error');
@@ -493,7 +339,7 @@
         const blob = new Blob([currentHtml], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `page_${Date.now()}.html`;
+        a.download = `source_${Date.now()}.html`;
         a.click();
         URL.revokeObjectURL(a.href);
         addLog('Downloaded', 'success');
@@ -514,10 +360,14 @@
         if (!targetUrl) return;
         if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
         
-        if (methodSelect.value === 'archive') {
+        const method = methodSelect.value;
+        
+        if (method === 'archive') {
             window.open(`https://web.archive.org/web/${targetUrl}`, '_blank');
-        } else {
+        } else if (method === 'direct') {
             window.open(targetUrl, '_blank');
+        } else {
+            window.open(buildProxyUrl(targetUrl, currentWebProxy), '_blank');
         }
         addLog('Opened in new tab', 'info');
     }
@@ -532,6 +382,12 @@
         document.getElementById(`${tabId}-panel`).classList.add('active');
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+    }
+    
+    function cycleProxy() {
+        currentWebProxy = (currentWebProxy + 1) % WEB_PROXIES.length;
+        addLog(`Switched to ${WEB_PROXIES[currentWebProxy].name}`, 'info');
+        loadPage();
     }
 
     document.getElementById('loadBtn').addEventListener('click', loadPage);
@@ -562,8 +418,11 @@
         if (e.key === 'Enter') loadPage();
     });
     
-    addLog('Archive + Proxy ready', 'success');
-    addLog('5 proxies with auto-fallback', 'info');
+    // Double-click status to cycle proxy
+    statusSpan.addEventListener('dblclick', cycleProxy);
+    
+    addLog('Ready - WebProxy for full JS', 'success');
+    addLog('Double-click status to switch proxy', 'info');
     setTimeout(() => loadPage(), 100);
 </script>
 </body>
