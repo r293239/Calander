@@ -202,12 +202,13 @@
     let currentHtml = '';
     let currentBaseUrl = '';
     
-    // Multiple CORS proxies for fallback
+    // Enhanced proxy list with proper formats
     const CORS_PROXIES = [
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-        'https://cors-anywhere.herokuapp.com/',
-        'https://thingproxy.freeboard.io/fetch/'
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'CORSProxy', url: 'https://corsproxy.io/?' },
+        { name: 'CORSAnywhere', url: 'https://cors-anywhere.herokuapp.com/' },
+        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }
     ];
     
     let currentProxyIndex = 0;
@@ -223,8 +224,13 @@
         while (logContainer.children.length > 150) logContainer.removeChild(logContainer.firstChild);
     }
 
-    function proxyUrl(url) {
-        return CORS_PROXIES[currentProxyIndex] + encodeURIComponent(url);
+    function getProxyUrl(url) {
+        const proxy = CORS_PROXIES[currentProxyIndex];
+        // Special handling for corsproxy.io
+        if (proxy.url.includes('corsproxy.io')) {
+            return proxy.url + encodeURIComponent(url);
+        }
+        return proxy.url + encodeURIComponent(url);
     }
 
     function rewriteHtml(html, baseUrl) {
@@ -232,20 +238,44 @@
         const baseOrigin = urlObj.origin;
         const basePath = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
         
-        // Add base tag
+        // Inject base tag and referrer meta
         if (!html.includes('<base')) {
-            html = html.replace(/<head[^>]*>/, `$&\n<base href="${baseUrl}">`);
+            html = html.replace(/<head[^>]*>/, `$&\n<base href="${baseUrl}">\n<meta name="referrer" content="no-referrer">`);
         }
         
-        // Rewrite all resource URLs to go through proxy
+        // Inject script to handle dynamic requests
+        const injectScript = `
+            <script>
+            (function() {
+                const originalFetch = window.fetch;
+                const originalXHROpen = XMLHttpRequest.prototype.open;
+                const proxyBase = '${CORS_PROXIES[currentProxyIndex].url}';
+                
+                window.fetch = function(url, options) {
+                    if (typeof url === 'string' && url.startsWith('http')) {
+                        url = proxyBase + encodeURIComponent(url);
+                    }
+                    return originalFetch.call(this, url, options);
+                };
+                
+                XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
+                    if (typeof url === 'string' && url.startsWith('http')) {
+                        url = proxyBase + encodeURIComponent(url);
+                    }
+                    return originalXHROpen.call(this, method, url, async, user, pass);
+                };
+            })();
+            <\/script>
+        `;
+        html = html.replace(/<head[^>]*>/, `$&\n${injectScript}`);
+        
+        // Rewrite all resource URLs
         const rewrites = [
-            { attr: 'src', tags: ['script', 'img', 'iframe', 'video', 'audio', 'source', 'embed', 'track', 'link'] },
-            { attr: 'href', tags: ['link', 'a'] },
+            { attr: 'src', tags: ['script', 'img', 'iframe', 'video', 'audio', 'source', 'embed', 'track'] },
+            { attr: 'href', tags: ['link'] },
             { attr: 'srcset', tags: ['img', 'source'] },
             { attr: 'data-src', tags: ['img'] },
-            { attr: 'action', tags: ['form'] },
-            { attr: 'poster', tags: ['video'] },
-            { attr: 'background', tags: ['body', 'table', 'td', 'th'] }
+            { attr: 'poster', tags: ['video'] }
         ];
         
         rewrites.forEach(({ attr, tags }) => {
@@ -268,10 +298,8 @@
                             absolute = url;
                         }
                         
-                        // Only proxy if it's an external resource
                         if (absolute.startsWith('http')) {
-                            const proxied = proxyUrl(absolute);
-                            addLog(`Proxy: ${absolute.substring(0, 60)}...`, 'info');
+                            const proxied = getProxyUrl(absolute);
                             return match.replace(url, proxied);
                         }
                         return match.replace(url, absolute);
@@ -282,7 +310,7 @@
             });
         });
         
-        // Rewrite url() in inline styles and style tags
+        // Rewrite url() in CSS
         html = html.replace(/url\(["']?([^)"']+)["']?\)/gi, (match, url) => {
             if (url.startsWith('data:')) return match;
             
@@ -299,7 +327,7 @@
                 }
                 
                 if (absolute.startsWith('http')) {
-                    const proxied = proxyUrl(absolute);
+                    const proxied = getProxyUrl(absolute);
                     return `url("${proxied}")`;
                 }
                 return `url("${absolute}")`;
@@ -308,7 +336,7 @@
             }
         });
         
-        // Rewrite @import in style tags
+        // Rewrite @import
         html = html.replace(/@import\s+["']([^"']+)["']/gi, (match, url) => {
             try {
                 let absolute;
@@ -323,7 +351,7 @@
                 }
                 
                 if (absolute.startsWith('http')) {
-                    const proxied = proxyUrl(absolute);
+                    const proxied = getProxyUrl(absolute);
                     return `@import "${proxied}"`;
                 }
                 return `@import "${absolute}"`;
@@ -335,22 +363,44 @@
         return html;
     }
 
-    async function fetchWithRetry(url, retries = 3) {
+    async function fetchWithRetry(url, retries = 5) {
+        let lastError;
+        
         for (let i = 0; i < retries; i++) {
+            const proxy = CORS_PROXIES[currentProxyIndex];
+            addLog(`Trying ${proxy.name}...`, 'info');
+            
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-                const response = await fetch(proxyUrl(url), { signal: controller.signal });
+                const timeoutId = setTimeout(() => controller.abort(), 20000);
+                
+                const fetchUrl = getProxyUrl(url);
+                const response = await fetch(fetchUrl, { 
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'Referer': url
+                    }
+                });
                 clearTimeout(timeoutId);
                 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return await response.text();
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const text = await response.text();
+                addLog(`Success with ${proxy.name}`, 'success');
+                return text;
+                
             } catch (error) {
-                addLog(`Proxy ${currentProxyIndex + 1} failed, trying next...`, 'warning');
+                addLog(`${proxy.name} failed: ${error.message}`, 'warning');
                 currentProxyIndex = (currentProxyIndex + 1) % CORS_PROXIES.length;
-                if (i === retries - 1) throw error;
+                lastError = error;
             }
         }
+        
+        throw lastError || new Error('All proxies failed');
     }
 
     async function fetchAndProxy(url) {
@@ -360,11 +410,11 @@
             const html = await fetchWithRetry(url);
             currentBaseUrl = url;
             
-            addLog(`Rewriting resources through proxy...`, 'info');
+            addLog(`Rewriting resources...`, 'info');
             const proxiedHtml = rewriteHtml(html, url);
             currentHtml = proxiedHtml;
             
-            sourceOutput.value = `<!-- URL: ${url} -->\n<!-- All resources proxied -->\n<!-- Size: ${proxiedHtml.length} bytes -->\n\n${proxiedHtml}`;
+            sourceOutput.value = `<!-- URL: ${url} -->\n<!-- Proxy: ${CORS_PROXIES[currentProxyIndex].name} -->\n<!-- Size: ${proxiedHtml.length} bytes -->\n\n${proxiedHtml}`;
             
             const blob = new Blob([proxiedHtml], { type: 'text/html' });
             const blobUrl = URL.createObjectURL(blob);
@@ -373,7 +423,7 @@
             
             viewerFrame.onload = () => {
                 URL.revokeObjectURL(blobUrl);
-                addLog(`Page loaded with proxied resources`, 'success');
+                addLog(`Page loaded`, 'success');
             };
             
             urlDisplaySpan.textContent = url;
@@ -425,7 +475,7 @@
             currentHtml = proxiedHtml;
             currentBaseUrl = targetUrl;
             
-            sourceOutput.value = `<!-- URL: ${targetUrl} -->\n<!-- All resources proxied -->\n<!-- Size: ${proxiedHtml.length} bytes -->\n\n${proxiedHtml}`;
+            sourceOutput.value = `<!-- URL: ${targetUrl} -->\n<!-- Proxy: ${CORS_PROXIES[currentProxyIndex].name} -->\n<!-- Size: ${proxiedHtml.length} bytes -->\n\n${proxiedHtml}`;
             
             addLog(`Source: ${proxiedHtml.length} bytes`, 'success');
             switchTab('source');
@@ -513,7 +563,7 @@
     });
     
     addLog('Archive + Proxy ready', 'success');
-    addLog('Resources will route through CORS proxy', 'info');
+    addLog('5 proxies with auto-fallback', 'info');
     setTimeout(() => loadPage(), 100);
 </script>
 </body>
